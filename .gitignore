@@ -1,0 +1,6 @@
+**/target
+**/.env
+/lib/src/string_keys.rs
+**/uploads/
+.idea
+**/.DS_Store
