@@ -1,8 +1,7 @@
 use axum::{Router, routing::get, middleware};
-use axum::routing::{delete, patch, post, put};
+use axum::routing::{delete, patch, post};
 use crate::middleware::auth::user_auth_middleware;
 use crate::module::user::lesson::controller::{page_lesson, increase_listen_count, update_lesson_progress, set_favourite, remove_favourite, deleted_lessons};
-use crate::module::user::topic::controller::deleted_topics;
 use crate::state::AppState;
 
 pub fn routes() -> Router<AppState> {

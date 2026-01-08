@@ -11,16 +11,16 @@ use utoipa_swagger_ui::SwaggerUi;
 
 pub fn build_app(state: AppState) -> Router {
     Router::new()
-        .nest("/v1/user", user::auth::routes::routes())
-        .nest("/v1/user", user::author::routes::routes())
-        .nest("/v1/user", user::topic::routes::routes())
-        .nest("/v1/user", user::lesson::routes::routes())
-        .nest("/v1/user", user::snip::routes::routes())
         .nest("/v1/admin", admin::auth::routes::routes())
         .nest("/v1/admin", admin::author::routes::routes())
         .nest("/v1/admin", admin::topic::routes::routes())
         .nest("/v1/admin", admin::lesson::routes::routes())
         .layer(middleware::from_fn(origin_middleware))
+        .nest("/v1/user", user::auth::routes::routes())
+        .nest("/v1/user", user::author::routes::routes())
+        .nest("/v1/user", user::topic::routes::routes())
+        .nest("/v1/user", user::lesson::routes::routes())
+        .nest("/v1/user", user::snip::routes::routes())
         .nest("/v1/file", common::file::routes::routes())
         .merge(
             SwaggerUi::new("/user/docs").url("/api-doc/user/openapi.json", UserApiDoc::openapi()),
