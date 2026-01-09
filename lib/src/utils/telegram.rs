@@ -14,8 +14,7 @@ pub struct TelegramAuthData {
     pub first_name: String,
     pub last_name: Option<String>,
     pub username: Option<String>,
-    pub photo_url: Option<String>,
-    pub auth_date: i64,
+    pub photo_url: Option<String>
 }
 
 pub fn verify_telegram_login(data: &str, bot_token: &str) -> Result<TelegramAuthData> {

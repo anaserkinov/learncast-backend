@@ -4,7 +4,6 @@ use crate::db::user::entity::UserEntity;
 use crate::error::auth::AuthError;
 use crate::utils::jwt;
 use crate::utils::telegram::verify_telegram_login;
-use anyhow::{anyhow, Result};
 use fluent_templates::LanguageIdentifier;
 use google_cloud_auth::credentials::idtoken::verifier;
 use sqlx::PgPool;
@@ -14,7 +13,7 @@ use crate::error::AppError;
 pub async fn logout(
     db: &PgPool,
     user_id: i64
-) -> Result<()> {
+) -> Result<(), AppError> {
     db::session::repo::delete(
         db,
         user_id
@@ -26,7 +25,7 @@ pub async fn get_me(
     db: &PgPool,
     user_id: i64,
     lang: LanguageIdentifier
-) -> Result<UserEntity> {
+) -> Result<UserEntity, AppError> {
     Ok(
         db::user::repo::find_by_id(db, user_id)
             .await?.ok_or(AppError::NotFound(lang))?
@@ -39,7 +38,7 @@ pub async fn refresh_tokens(
     user_agent: String,
     role: String,
     lang: LanguageIdentifier
-) -> Result<(String, String)> {
+) -> Result<(String, String), AppError> {
     let claims = jwt::validate_refresh_token(&refresh_token)
         .map_err(|_| AuthError::Unauthorized(lang.clone()))?;
     if claims.role != role { return Err(AuthError::Unauthorized(lang).into()); }
@@ -77,7 +76,7 @@ pub async fn signin_with_telegram(
     role: String,
     data: String,
     lang: LanguageIdentifier
-) -> Result<(UserEntity, String, String)>{
+) -> Result<(UserEntity, String, String), AppError>{
     let auth_data = verify_telegram_login(
         &data,
         &crate::utils::CONFIG.telegram_bot_token,
@@ -131,10 +130,12 @@ pub async fn signin_with_google(
     role: String,
     data: String,
     lang: LanguageIdentifier
-) -> Result<(UserEntity, String, String)>{
+) -> Result<(UserEntity, String, String), AppError>{
     let verifier = verifier::Builder::new(vec!["22454749576-42ii04497d5aceqndkbvpnvn29nvub02.apps.googleusercontent.com"])
             .build();
-    let auth_data = verifier.verify(&data).await?;
+    let auth_data = verifier.verify(&data)
+        .await
+        .map_err(|_| AuthError::Unauthorized(lang.clone()))?;
 
     let id = auth_data["sub"].as_str().unwrap();
     let name = auth_data["name"].as_str().unwrap();

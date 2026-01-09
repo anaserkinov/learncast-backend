@@ -461,16 +461,12 @@ pub async fn update_progress(
         r#"
         INSERT INTO lesson_progress (user_id, author_id, lesson_id, started_at, last_position_ms, status, completed_at)
         VALUES (
-            $1, $2, $3, $4, $5, COALESCE($6, 'in_progress'), $7
+            $1, $2, $3, $4, $5, $6, $7
         )
         ON CONFLICT (user_id, lesson_id) DO UPDATE
             SET last_position_ms = EXCLUDED.last_position_ms,
-                status = CASE
-                     WHEN EXCLUDED.status IS NOT NULL 
-                     THEN EXCLUDED.status
-                     ELSE lesson_progress.status
-                END,
-                completed_at = EXCLUDED.completed_at
+                status = (EXCLUDED.status, lesson_progress.status),
+                completed_at = (EXCLUDED.completed_at, lesson_progress.completed_at)
         RETURNING *
         "#
     )

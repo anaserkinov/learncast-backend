@@ -1,3 +1,9 @@
+CREATE TYPE user_progress_status AS ENUM (
+    'not_started',
+    'in_progress',
+    'completed'
+    );
+
 CREATE TABLE users
 (
     id                BIGSERIAL PRIMARY KEY,
@@ -83,12 +89,12 @@ CREATE TABLE lesson
 CREATE TABLE lesson_progress
 (
     id               BIGSERIAL PRIMARY KEY,
-    user_id          BIGINT      NOT NULL,
-    author_id        BIGINT      NOT NULL,
-    lesson_id        BIGINT      NOT NULL,
-    started_at       TIMESTAMPTZ NOT NULL,
-    last_position_ms BIGINT      NOT NULL DEFAULT 0,
-    status           TEXT        NOT NULL DEFAULT 'in_progress',
+    user_id          BIGINT               NOT NULL,
+    author_id        BIGINT               NOT NULL,
+    lesson_id        BIGINT               NOT NULL,
+    started_at       TIMESTAMPTZ          NOT NULL,
+    last_position_ms BIGINT               NOT NULL DEFAULT 0,
+    status           user_progress_status NOT NULL DEFAULT 'in_progress',
     completed_at     TIMESTAMPTZ,
     UNIQUE (user_id, lesson_id)
 );
@@ -122,11 +128,11 @@ CREATE TABLE favourite_lesson
 
 CREATE TABLE listen_session
 (
-    id             BIGSERIAL PRIMARY KEY,
+    id         BIGSERIAL PRIMARY KEY,
     session_id TEXT        NOT NULL,
-    user_id        BIGINT      NOT NULL,
-    lesson_id      BIGINT      NOT NULL,
-    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    user_id    BIGINT      NOT NULL,
+    lesson_id  BIGINT      NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (session_id)
 );
 
