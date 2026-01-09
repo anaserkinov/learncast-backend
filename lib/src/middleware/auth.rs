@@ -41,16 +41,18 @@ pub async fn origin_middleware(
     req: Request,
     next: Next,
 ) -> Result<Response, AppError> {
+    
+    if !cfg!(debug_assertions) {
+        let Some(header_value) = req.headers().get(header::ORIGIN) else {
+            return Err(AuthError::Unauthorized(lang).into());
+        };
 
-    let Some(header_value) = req.headers().get(header::ORIGIN) else {
-        return Err(AuthError::Unauthorized(lang).into());
-    };
+        let header = header_value.to_str()
+            .map_err(|_| AuthError::Unauthorized(lang.clone()))?;
 
-    let header = header_value.to_str()
-        .map_err(|_| AuthError::Unauthorized(lang.clone()))?;
-
-    if header != "http://127.0.0.1" {
-        return Err(AuthError::Unauthorized(lang).into());
+        if !header.starts_with("http://127.0.0.1") {
+            return Err(AuthError::Unauthorized(lang).into());
+        }
     }
 
     Ok(next.run(req).await)

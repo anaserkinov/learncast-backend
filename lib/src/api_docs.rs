@@ -1,5 +1,5 @@
 use utoipa::{Modify, OpenApi};
-use utoipa::openapi::security::HttpAuthScheme;
+use utoipa::openapi::security::{ApiKeyValue, HttpAuthScheme};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -39,7 +39,7 @@ use utoipa::openapi::security::HttpAuthScheme;
             crate::module::user::snip::dto::QuerySort
         )
     ),
-    modifiers(&SecurityAddon)
+    modifiers(&UserSecurityAddon)
 )]
 pub struct UserApiDoc;
 
@@ -81,12 +81,31 @@ pub struct UserApiDoc;
             crate::module::common::lesson::dto::QuerySort
         )
     ),
-    modifiers(&SecurityAddon)
+    modifiers(&AdminSecurityAddon)
 )]
 pub struct AdminApiDoc;
 
-pub struct SecurityAddon;
-impl Modify for SecurityAddon {
+pub struct AdminSecurityAddon;
+impl Modify for AdminSecurityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        let existing = openapi.components.take().unwrap();
+        openapi.components = Some(
+            utoipa::openapi::ComponentsBuilder::from(existing)
+                .security_scheme(
+                    "cookieAuth",
+                    utoipa::openapi::security::SecurityScheme::ApiKey(
+                        utoipa::openapi::security::ApiKey::Cookie (
+                            ApiKeyValue::new("access_token".to_string())
+                        )
+                    )
+                )
+                .build(),
+        );
+    }
+}
+
+pub struct UserSecurityAddon;
+impl Modify for UserSecurityAddon {
     fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
         let existing = openapi.components.take().unwrap();
         openapi.components = Some(

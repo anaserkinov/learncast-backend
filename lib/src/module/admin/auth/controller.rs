@@ -22,6 +22,7 @@ use crate::utils::jwt::Claims;
 #[utoipa::path(
     get,
     path = "/v1/admin/me",
+    security(("cookieAuth" = [])),
     responses(
         (status = 200, body = UserResponse)
     ),

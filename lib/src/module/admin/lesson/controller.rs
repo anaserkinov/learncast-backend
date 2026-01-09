@@ -13,7 +13,7 @@ use crate::module::common::paging::PagingResponse;
 #[utoipa::path(
     post,
     path = "/v1/admin/lesson",
-    security(("bearerAuth" = [])),
+    security(("cookieAuth" = [])),
     params(TopicIdParam),
     request_body = LessonCURequest,
     responses((status = 200, body = LessonResponse)),
@@ -47,7 +47,7 @@ pub async fn create_lesson(
 #[utoipa::path(
     put,
     path = "/v1/admin/lesson/{id}",
-    security(("bearerAuth" = [])),
+    security(("cookieAuth" = [])),
     params(IdParam),
     request_body = LessonCURequest,
     responses((status = 200, body = LessonResponse)),
@@ -82,7 +82,7 @@ pub async fn update_lesson(
 #[utoipa::path(
     get,
     path = "/v1/admin/lesson",
-    security(("bearerAuth" = [])),
+    security(("cookieAuth" = [])),
     params(LessonPaginationParams),
     responses((status = 200, body = PagingResponse<LessonResponse>)),
     tag = "Lesson"
@@ -123,7 +123,7 @@ pub async fn page_lesson(
 #[utoipa::path(
     get,
     path = "/v1/admin/lesson/{id}",
-    security(("bearerAuth" = [])),
+    security(("cookieAuth" = [])),
     params(IdParam),
     responses((status = 200, body = LessonResponse)),
     tag = "Lesson"
@@ -147,7 +147,7 @@ pub async fn get_lesson(
 #[utoipa::path(
     delete,
     path = "/v1/admin/lesson/{id}",
-    security(("bearerAuth" = [])),
+    security(("cookieAuth" = [])),
     params(IdParam),
     tag = "Lesson"
 )]

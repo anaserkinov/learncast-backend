@@ -13,7 +13,7 @@ use crate::utils::extractors::{ValidatedJson, ValidatedPath, ValidatedQuery};
 #[utoipa::path(
     post,
     path = "/v1/admin/author",
-    security(("bearerAuth" = [])),
+    security(("cookieAuth" = [])),
     request_body = AuthorCURequest,
     responses((status = 200, body = AuthorResponse)),
     tag = "Author"
@@ -39,7 +39,7 @@ pub async fn create_author(
 #[utoipa::path(
     put,
     path = "/v1/admin/author/{id}",
-    security(("bearerAuth" = [])),
+    security(("cookieAuth" = [])),
     params(IdParam),
     request_body = AuthorCURequest,
     responses((status = 200, body = AuthorResponse)),
@@ -71,7 +71,7 @@ pub async fn update_author(
 #[utoipa::path(
     get,
     path = "/v1/admin/author",
-    security(("bearerAuth" = [])),
+    security(("cookieAuth" = [])),
     params(PaginationParams),
     responses((status = 200, body = PagingResponse<AuthorResponse>)),
     tag = "Author"
@@ -105,7 +105,7 @@ pub async fn page_author(
 #[utoipa::path(
     get,
     path = "/v1/admin/author/{id}",
-    security(("bearerAuth" = [])),
+    security(("cookieAuth" = [])),
     params(IdParam),
     responses((status = 200, body = AuthorResponse)),
     tag = "Author"
@@ -129,7 +129,7 @@ pub async fn get_author(
 #[utoipa::path(
     delete,
     path = "/v1/admin/author/{id}",
-    security(("bearerAuth" = [])),
+    security(("cookieAuth" = [])),
     params(IdParam),
     tag = "Author"
 )]

@@ -34,7 +34,7 @@ pub struct LessonProgressUpdateRequest {
     pub started_at: OffsetDateTime,
     pub last_position_ms: i64,
     pub status: Option<UserProgressStatus>,
-    #[serde(with = "time::serde::rfc3339::option")]
+    #[serde(with = "time::serde::rfc3339::option", default)]
     pub completed_at: Option<OffsetDateTime>
 }
 

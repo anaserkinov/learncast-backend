@@ -3,7 +3,7 @@ use crate::state::AppState;
 use axum::extract::State;
 use crate::error::AppError;
 use crate::extractor::accept_language::AcceptLanguage;
-use crate::module::common::base::{BaseResponse, DeletedParams, DeletedResponse};
+use crate::module::common::base::{BaseResponse, DeletedParams, DeletedResponse, IdParam};
 use crate::module::user::lesson::dto::{LessonPaginationParams, ListenSessionCreateRequest, ListenSessionCreateResponse};
 use crate::module::common::lesson::service;
 use crate::module::common::paging::{CursorPagingResponse, PagingResponse};
@@ -75,6 +75,7 @@ pub async fn deleted_lessons(
     post,
     path = "/v1/user/lesson/{id}/favourite",
     security(("bearerAuth" = [])),
+    params(IdParam),
     tag = "Lesson"
 )]
 pub async fn set_favourite(
@@ -95,6 +96,7 @@ pub async fn set_favourite(
     delete,
     path = "/v1/user/lesson/{id}/favourite",
     security(("bearerAuth" = [])),
+    params(IdParam),
     tag = "Lesson"
 )]
 pub async fn remove_favourite(
@@ -116,6 +118,7 @@ pub async fn remove_favourite(
     post,
     path = "/v1/user/lesson/{id}/listen",
     security(("bearerAuth" = [])),
+    params(IdParam),
     request_body = ListenSessionCreateRequest,
     responses((status = 200, body = ListenSessionCreateResponse)),
     tag = "Lesson"
@@ -143,6 +146,7 @@ pub async fn increase_listen_count(
     patch,
     path = "/v1/user/lesson/{id}/progress",
     security(("bearerAuth" = [])),
+    params(IdParam),
     request_body = LessonProgressUpdateRequest,
     responses((status = 200, body = PagingResponse<LessonProgressResponse>)),
     tag = "Lesson"

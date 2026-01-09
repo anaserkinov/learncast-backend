@@ -12,7 +12,7 @@ use crate::utils::extractors::{ValidatedJson, ValidatedPath, ValidatedQuery};
 #[utoipa::path(
     post,
     path = "/v1/admin/topic",
-    security(("bearerAuth" = [])),
+    security(("cookieAuth" = [])),
     request_body = TopicCURequest,
     responses((status = 200, body = TopicResponse)),
     tag = "Topic"
@@ -39,7 +39,7 @@ pub async fn create_topic(
 #[utoipa::path(
     put,
     path = "/v1/admin/topic/{id}",
-    security(("bearerAuth" = [])),
+    security(("cookieAuth" = [])),
     params(IdParam),
     request_body = TopicCURequest,
     responses((status = 200, body = TopicResponse)),
@@ -72,7 +72,7 @@ pub async fn update_topic(
 #[utoipa::path(
     get,
     path = "/v1/admin/topic",
-    security(("bearerAuth" = [])),
+    security(("cookieAuth" = [])),
     params(PaginationParams),
     responses((status = 200, body = PagingResponse<TopicResponse>)),
     tag = "Topic"
@@ -109,7 +109,7 @@ pub async fn page_topic(
 #[utoipa::path(
     get,
     path = "/v1/admin/topic/{id}",
-    security(("bearerAuth" = [])),
+    security(("cookieAuth" = [])),
     params(IdParam),
     responses((status = 200, body = TopicResponse)),
     tag = "Topic"
@@ -133,7 +133,7 @@ pub async fn get_topic(
 #[utoipa::path(
     delete,
     path = "/v1/admin/topic/{id}",
-    security(("bearerAuth" = [])),
+    security(("cookieAuth" = [])),
     params(IdParam),
     tag = "Topic"
 )]
