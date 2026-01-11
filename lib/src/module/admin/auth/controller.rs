@@ -1,23 +1,23 @@
-use axum::{Extension, Json};
-use crate::error::AppError;
 use crate::error::auth::AuthError;
+use crate::error::AppError;
 use crate::extractor::accept_language::AcceptLanguage;
-use crate::module::common::auth::dto::{Credentials, LoginResponse, RefreshTokenRequest, SignInRequest, UserResponse};
+use crate::module::common::auth::dto::{SignInRequest, UserResponse};
 use crate::module::common::auth::{mapper, service};
 use crate::module::common::base::BaseResponse;
 use crate::state::AppState;
 use crate::utils::extractors::ValidatedJson;
 use crate::utils::jwt;
+use crate::utils::jwt::Claims;
 use axum::extract::{Request, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum_extra::TypedHeader;
-use axum_extra::extract::CookieJar;
+use axum::Extension;
 use axum_extra::extract::cookie::{Cookie, SameSite};
+use axum_extra::extract::CookieJar;
+use axum_extra::TypedHeader;
 use headers::authorization::Bearer;
 use headers::{Authorization, UserAgent};
 use time::Duration;
-use crate::utils::jwt::Claims;
 
 #[utoipa::path(
     get,

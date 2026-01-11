@@ -27,7 +27,8 @@ pub struct SnipResponse {
     pub end_ms: i64,
     pub note_text: Option<String>,
     #[serde(with = "time::serde::rfc3339")]
-    pub created_at: OffsetDateTime
+    pub created_at: OffsetDateTime,
+    pub user_snip_count: Option<i64>
 }
 
 #[derive(Serialize, Debug, ToSchema)]

@@ -1,6 +1,6 @@
 use crate::error::AppError;
 use crate::extractor::accept_language::AcceptLanguage;
-use crate::module::common::base::{BaseResponse, ClientSnipIdParam, DeletedParams, DeletedResponse, IdParam, LessonIdParam};
+use crate::module::common::base::{BaseResponse, ClientSnipIdParam, DeletedParams, DeletedResponse, LessonIdParam};
 use crate::module::common::paging::CursorPagingResponse;
 use crate::module::user::snip::dto::{SnipCURequest, SnipCountResponse, SnipPaginationParams, SnipResponse};
 use crate::module::user::snip::mapper;
@@ -40,9 +40,15 @@ pub async fn create_snip(
         lang
     ).await?;
 
+    let user_snip_count = service::count(
+        &state.db,
+        claims.sub,
+        lesson_id
+    ).await?;
+
     Ok(
         BaseResponse::success(
-            mapper::to_response(snip)
+            mapper::to_response(snip, Some(user_snip_count))
         )
     )
 }
@@ -64,7 +70,7 @@ pub async fn update_snip(
     ValidatedJson(body): ValidatedJson<SnipCURequest>,
 ) -> Result<BaseResponse<SnipResponse>, AppError> {
 
-    let topic = service::update(
+    let snip = service::update(
         &state.db,
         client_snip_id,
         claims.sub,
@@ -76,7 +82,7 @@ pub async fn update_snip(
 
     Ok(
         BaseResponse::success(
-            mapper::to_response(topic)
+            mapper::to_response(snip, None)
         )
     )
 }
@@ -135,7 +141,9 @@ pub async fn page_snip(
     Ok(
         BaseResponse::success(
             CursorPagingResponse::new(
-                topics.0.into_iter().map(mapper::to_response).collect(),
+                topics.0.into_iter()
+                    .map(|t| mapper::to_response(t, None))
+                    .collect(),
                 topics.1
             )
         )
