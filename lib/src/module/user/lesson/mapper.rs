@@ -12,6 +12,7 @@ pub fn to_response(entity: LessonWithAuthorTopic) -> LessonResponse {
             Some(LessonProgressResponse {
                 user_id: entity.user_id.unwrap(),
                 author_id: entity.lesson.author_id,
+                topic_id: entity.lesson.topic_id,
                 lesson_id: entity.lesson.id,
                 started_at: entity.started_at.unwrap_or(OffsetDateTime::now_utc()),
                 last_position_ms: entity.last_position_ms.unwrap(),
@@ -26,6 +27,7 @@ pub fn progress_to_response(entity: LessonProgressEntity) -> LessonProgressRespo
     LessonProgressResponse{
         user_id: entity.user_id,
         author_id: entity.author_id,
+        topic_id: entity.topic_id,
         lesson_id: entity.lesson_id,
         started_at: entity.started_at,
         last_position_ms: entity.last_position_ms,

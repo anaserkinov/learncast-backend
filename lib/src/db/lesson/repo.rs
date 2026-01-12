@@ -451,6 +451,7 @@ pub async fn update_progress(
     connection: &mut PgConnection,
     user_id: i64,
     author_id: i64,
+    topic_id: Option<i64>,
     lesson_id: i64,
     started_at: OffsetDateTime,
     last_position_ms: i64,
@@ -459,9 +460,9 @@ pub async fn update_progress(
 ) -> Result<LessonProgressEntity, sqlx::Error> {
     let entity = sqlx::query_as::<_, LessonProgressEntity>(
         r#"
-        INSERT INTO lesson_progress (user_id, author_id, lesson_id, started_at, last_position_ms, status, completed_at)
+        INSERT INTO lesson_progress (user_id, author_id, topic_id, lesson_id, started_at, last_position_ms, status, completed_at)
         VALUES (
-            $1, $2, $3, $4, $5, $6, $7
+            $1, $2, $3, $4, $5, $6, COALESCE($7, 'in_progress'), $8
         )
         ON CONFLICT (user_id, lesson_id) DO UPDATE
             SET last_position_ms = EXCLUDED.last_position_ms,
@@ -472,6 +473,7 @@ pub async fn update_progress(
     )
         .bind(user_id)
         .bind(author_id)
+        .bind(topic_id)
         .bind(lesson_id)
         .bind(started_at)
         .bind(last_position_ms)

@@ -261,6 +261,7 @@ pub async fn update_progress(
         &mut tx,
         user_id,
         author.id,
+        topic.as_ref().map(|t| t.id),
         lesson_id,
         started_at,
         last_position_ms,

@@ -4,14 +4,12 @@ use crate::error::AppError;
 use crate::module::common::enums::UserProgressStatus;
 use crate::module::common::paging::QueryOrder;
 use crate::module::common::topic::dto::QuerySort;
+use crate::module::user::topic::dto::TopicCursor;
 use crate::{db, utils};
 use anyhow::Result;
 use fluent_templates::LanguageIdentifier;
-use sqlx::encode::IsNull::No;
 use sqlx::PgPool;
 use time::OffsetDateTime;
-use validator::ValidateLength;
-use crate::module::user::topic::dto::TopicCursor;
 
 pub async fn create(
     db: &PgPool,

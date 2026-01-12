@@ -232,12 +232,11 @@ pub async fn get_by_id(
         topic.lesson_count AS topic_lesson_count,
         topic.total_duration AS topic_total_duration,
         topic.snip_count AS topic_snip_count
-    "#).push("JOIN lesson ON lesson.id = snip.lesson_id ON lesson.deleted_at IS NULL")
+    "#).push(" FROM snip")
+        .push(" JOIN lesson ON lesson.id = snip.lesson_id AND lesson.deleted_at IS NULL")
         .push(" JOIN author ON author.id = snip.author_id")
         .push(" LEFT JOIN topic ON topic.id = snip.topic_id")
-        .push(" WHERE id = ").push_bind(id);
-
-    query.push(" FROM snip");
+        .push(" WHERE snip.id = ").push_bind(id);
 
     query
         .build_query_as::<SnipEntityWithLesson>()

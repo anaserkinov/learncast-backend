@@ -65,6 +65,7 @@ pub struct LessonWithAuthorTopic {
 pub struct LessonProgressEntity {
     pub user_id: i64,
     pub author_id: i64,
+    pub topic_id: Option<i64>,
     pub lesson_id: i64,
     pub started_at: OffsetDateTime,
     pub last_position_ms: i64,

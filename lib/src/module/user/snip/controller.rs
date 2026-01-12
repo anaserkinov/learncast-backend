@@ -10,6 +10,8 @@ use crate::utils::extractors::{ValidatedJson, ValidatedPath, ValidatedQuery};
 use crate::utils::jwt::Claims;
 use axum::extract::State;
 use axum::Extension;
+use crate::string_keys::strings;
+use crate::utils::t;
 
 #[utoipa::path(
     post,
@@ -28,6 +30,10 @@ pub async fn create_snip(
     ValidatedJson(body): ValidatedJson<SnipCURequest>
 ) -> Result<BaseResponse<SnipResponse>, AppError> {
 
+    if body.end_ms - body.start_ms < 10_000 { 
+        return Err(AppError::BadRequest{lang: lang.clone(), message: t(&lang, strings::BAD_REQUEST)});
+    }
+    
     let snip = service::create(
         &state.db,
         body.client_snip_id,

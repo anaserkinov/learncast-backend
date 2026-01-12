@@ -9,9 +9,13 @@ use crate::module::common::paging::QueryOrder;
 
 #[derive(Deserialize, Debug, Validate, ToSchema)]
 pub struct SnipCURequest{
+    #[validate(length(min = 1))]
     pub client_snip_id: String,
+    #[validate(range(min = 0))]
     pub start_ms: i64,
+    #[validate(range(min = 0))]
     pub end_ms: i64,
+    #[validate(length(max = 128))]
     pub note_text: Option<String>,
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime

@@ -19,6 +19,7 @@ pub struct LessonResponse {
 pub struct LessonProgressResponse {
     pub user_id: i64,
     pub author_id: i64,
+    pub topic_id: Option<i64>,
     pub lesson_id: i64,
     #[serde(with = "time::serde::rfc3339")]
     pub started_at: OffsetDateTime,

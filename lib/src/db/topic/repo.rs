@@ -364,7 +364,7 @@ pub async fn increase_snip_count(
         r#"
         UPDATE author_topic
         SET snip_count = snip_count + 1
-        WHERE topic_id = $3 AND author_id = $4
+        WHERE topic_id = $1 AND author_id = $2
         "#,
     )
     .bind(topic_id)
@@ -401,25 +401,6 @@ pub async fn update_progress(
     .bind(author_id)
     .bind(topic_id)
     .execute(&mut *connection)
-    .await?;
-
-    sqlx::query(
-        r#"
-        INSERT INTO topic_progress (user_id, topic_id, completed_lesson_count)
-        VALUES (
-            $1, $2, (
-            SELECT SUM(completed_lesson_count)
-            FROM author_topic_progress
-            WHERE user_id = $1 AND topic_id = $2)
-            )
-        ON CONFLICT (user_id, topic_id)
-        DO UPDATE SET
-            completed_lesson_count = EXCLUDED.completed_lesson_count
-            "#,
-    )
-    .bind(user_id)
-    .bind(topic_id)
-    .execute(connection)
     .await?;
 
     Ok(())

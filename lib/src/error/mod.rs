@@ -52,40 +52,35 @@ pub enum AppError {
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        let (status, code, lang, message_key, data_payload) = match self {
+        let (status, code, message, data_payload) = match self {
             AppError::NotFound(lang) => (
                 StatusCode::NOT_FOUND,
                 100001,
-                lang,
-                strings::NOT_FOUND,
+                t(&lang, strings::NOT_FOUND),
                 None,
             ),
             AppError::BadRequest { lang, message } => (
                 StatusCode::BAD_REQUEST,
                 100002,
-                lang,
-                strings::BAD_REQUEST,
-                Some(Value::String(message)),
+                message,
+                None
             ),
             AppError::Internal(lang) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 100003,
-                lang,
-                strings::INTERNAL_ERROR,
+                t(&lang, strings::INTERNAL_ERROR),
                 None,
             ),
             AppError::UnsupportedFileType(lang) => (
                 StatusCode::UNSUPPORTED_MEDIA_TYPE,
                 100004,
-                lang,
-                strings::UNSUPPORTED_FILE_TYPE,
+                t(&lang, strings::UNSUPPORTED_FILE_TYPE),
                 None,
             ),
             AppError::FileTooLarge(lang) => (
                 StatusCode::PAYLOAD_TOO_LARGE,
                 100005,
-                lang,
-                strings::FILE_TOO_LARGE,
+                t(&lang, strings::FILE_TOO_LARGE),
                 None,
             ),
 
@@ -98,7 +93,7 @@ impl IntoResponse for AppError {
 
         let body = axum::Json(BaseResponse::<Value>::error(
             code,
-            &t(&lang, message_key),
+            &message,
             data_payload,
         ));
 
