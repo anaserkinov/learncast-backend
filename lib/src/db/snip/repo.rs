@@ -93,7 +93,7 @@ fn build_query(
     lesson_id: Option<i64>,
     search: &Option<String>
 ){
-    query.push(" JOIN lesson ON lesson.id = snip.lesson_id ON lesson.deleted_at IS NULL")
+    query.push(" JOIN lesson ON lesson.id = snip.lesson_id AND lesson.deleted_at IS NULL")
         .push(" JOIN author ON author.id = snip.author_id")
         .push(" LEFT JOIN topic ON topic.id = snip.topic_id")
         .push(" WHERE snip.deleted_at IS NULL AND user_id = ").push_bind(user_id);
