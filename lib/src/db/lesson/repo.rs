@@ -117,7 +117,8 @@ fn build_query(
     has_where = true;
 
     if let Some(author_id) = author_id {
-        query.push(" WHERE author_id = ").push_bind(author_id);
+        query.push(if has_where { " AND " } else { " WHERE " })
+            .push("author_id =").push_bind(author_id);
         has_where = true;
     }
 

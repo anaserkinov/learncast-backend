@@ -106,7 +106,7 @@ CREATE TABLE author_topic_progress
     user_id                BIGINT NOT NULL,
     author_id              BIGINT NOT NULL,
     topic_id               BIGINT NOT NULL,
-    completed_lesson_count INT    NOT NULL DEFAULT 0,
+    completed_lesson_count BIGINT    NOT NULL DEFAULT 0,
     UNIQUE (user_id, author_id, topic_id)
 );
 
