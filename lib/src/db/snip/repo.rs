@@ -191,7 +191,7 @@ pub async fn count(
     Ok(
         sqlx::query_as::<_, (i64,)>(
             r#"
-            SELECT COUNT(*) FROM snip WHERE user_id = $1 AND lesson_id = $2
+            SELECT COUNT(*) FROM snip WHERE user_id = $1 AND lesson_id = $2 AND deleted_at IS NULL
             "#,
         )
             .bind(user_id)

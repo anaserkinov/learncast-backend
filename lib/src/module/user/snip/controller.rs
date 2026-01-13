@@ -30,10 +30,10 @@ pub async fn create_snip(
     ValidatedJson(body): ValidatedJson<SnipCURequest>
 ) -> Result<BaseResponse<SnipResponse>, AppError> {
 
-    if body.end_ms - body.start_ms < 10_000 { 
+    if body.end_ms - body.start_ms < 10_000 {
         return Err(AppError::BadRequest{lang: lang.clone(), message: t(&lang, strings::BAD_REQUEST)});
     }
-    
+
     let snip = service::create(
         &state.db,
         body.client_snip_id,
@@ -50,11 +50,11 @@ pub async fn create_snip(
         &state.db,
         claims.sub,
         lesson_id
-    ).await?;
+    ).await.ok();
 
     Ok(
         BaseResponse::success(
-            mapper::to_response(snip, Some(user_snip_count))
+            mapper::to_response(snip, user_snip_count)
         )
     )
 }
@@ -98,6 +98,7 @@ pub async fn update_snip(
     path = "/v1/user/lesson/snip/{client_snip_id}",
     security(("bearerAuth" = [])),
     params(ClientSnipIdParam),
+    responses((status = 200, body = Option<SnipCountResponse>)),
     tag = "Snip"
 )]
 pub async fn delete_snip(
@@ -105,17 +106,33 @@ pub async fn delete_snip(
     AcceptLanguage(lang): AcceptLanguage,
     ValidatedPath(client_snip_id): ValidatedPath<String>,
     Extension(claims): Extension<Claims>
-) -> Result<BaseResponse<()>, AppError> {
+) -> Result<BaseResponse<Option<SnipCountResponse>>, AppError> {
 
-    service::delete(
+    let snip = service::delete(
         &state.db,
         client_snip_id,
         claims.sub,
         lang
     ).await?;
 
+    let snip_count_response = if let Some(snip) = snip {
+        let snip_count = service::count(
+            &state.db,
+            claims.sub,
+            snip.lesson_id
+        ).await.ok();
+        if snip_count.is_some() {
+            Some(
+                SnipCountResponse{
+                    lesson_id: snip.lesson_id,
+                    user_snip_count: snip_count.unwrap()
+                }
+            )
+        } else { None }
+    } else { None };
+
     Ok(
-        BaseResponse::success(())
+        BaseResponse::success(snip_count_response)
     )
 }
 
@@ -192,7 +209,7 @@ pub async fn count_snip(
     Extension(claims): Extension<Claims>
 ) -> Result<BaseResponse<SnipCountResponse>, AppError> {
 
-    let count = service::count(
+    let user_snip_count = service::count(
         &state.db,
         claims.sub,
         lesson_id
@@ -200,7 +217,10 @@ pub async fn count_snip(
 
     Ok(
         BaseResponse::success(
-            SnipCountResponse{ count }
+            SnipCountResponse{ 
+                lesson_id, 
+                user_snip_count
+            }
         )
     )
 }

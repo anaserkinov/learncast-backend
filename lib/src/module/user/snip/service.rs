@@ -1,5 +1,5 @@
 use crate::{db, utils};
-use crate::db::snip::entity::{SnipEntityWithLesson, SnipInput};
+use crate::db::snip::entity::{SnipEntity, SnipEntityWithLesson, SnipInput};
 use crate::module::user::snip::dto::{QuerySort, SnipCursor};
 use crate::module::common::paging::QueryOrder;
 use anyhow::Result;
@@ -109,15 +109,15 @@ pub async fn delete(
     client_snip_id: String,
     user_id: i64,
     lang: LanguageIdentifier
-) -> Result<()> {
+) -> Result<Option<SnipEntity>> {
     let mut tx = db.begin().await?;
     let entity = db::snip::repo::delete(&mut tx, client_snip_id)
         .await?;
-    if let Some(entity) = entity && entity.user_id != user_id {
+    if let Some(entity) = &entity && entity.user_id != user_id {
         return Err(SnipError::SnipNotOwnedDelete(lang).into());
     }
     tx.commit().await?;
-    Ok(())
+    Ok(entity)
 }
 
 pub async fn deleted(

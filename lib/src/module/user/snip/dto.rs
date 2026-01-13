@@ -37,7 +37,8 @@ pub struct SnipResponse {
 
 #[derive(Serialize, Debug, ToSchema)]
 pub struct SnipCountResponse {
-    pub count: i64
+    pub lesson_id: i64,
+    pub user_snip_count: i64
 }
 
 #[derive(Deserialize, ToSchema, IntoParams)]
