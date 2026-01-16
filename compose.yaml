@@ -1,0 +1,31 @@
+services:
+  api:
+    image: anaserkinov/learncast-api:latest
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - ./uploads:/learncast/uploads
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:15-bookworm
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: learncast
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:alpine
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+volumes:
+  postgresql_data:
+  redis_data:

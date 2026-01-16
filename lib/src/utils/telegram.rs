@@ -18,7 +18,6 @@ pub struct TelegramAuthData {
 }
 
 pub fn verify_telegram_login(data: &str, bot_token: &str) -> Result<TelegramAuthData> {
-    eprint!("{}: ", data);
     let decoded = base64::engine::general_purpose::URL_SAFE_NO_PAD
         .decode(data)
         .map_err(|_| anyhow::anyhow!("Base64 decode failed"))?;

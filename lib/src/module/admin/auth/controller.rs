@@ -156,6 +156,7 @@ fn build_cookie(
 ) -> CookieJar {
     let refresh_cookie = Cookie::build(("refresh_token", refresh_token))
         .path("/v1/admin/auth/refresh-token")
+        .domain("anasmusa.me")
         .http_only(true)
         .secure(true)
         .same_site(SameSite::Lax)
@@ -164,6 +165,7 @@ fn build_cookie(
 
     let access_cookie = Cookie::build(("access_token", access_token))
         .path("/")
+        .domain("anasmusa.me")
         .http_only(true)
         .secure(true)
         .same_site(SameSite::Lax)

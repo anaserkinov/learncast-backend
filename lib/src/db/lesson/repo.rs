@@ -467,8 +467,8 @@ pub async fn update_progress(
         )
         ON CONFLICT (user_id, lesson_id) DO UPDATE
             SET last_position_ms = EXCLUDED.last_position_ms,
-                status = COALESCE(EXCLUDED.status, lesson_progress.status),
-                completed_at = COALESCE(EXCLUDED.completed_at, lesson_progress.completed_at)
+                status = COALESCE($7, lesson_progress.status),
+                completed_at = COALESCE(lesson_progress.completed_at, EXCLUDED.completed_at)
         RETURNING *
         "#
     )

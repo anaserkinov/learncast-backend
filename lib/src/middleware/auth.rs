@@ -50,7 +50,7 @@ pub async fn origin_middleware(
         let header = header_value.to_str()
             .map_err(|_| AuthError::Unauthorized(lang.clone()))?;
 
-        if !header.starts_with("http://127.0.0.1") {
+        if !header.starts_with("https://learncast.anasmusa.me") {
             return Err(AuthError::Unauthorized(lang).into());
         }
     }
