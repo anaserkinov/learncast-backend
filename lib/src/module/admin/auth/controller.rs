@@ -6,7 +6,7 @@ use crate::module::common::auth::{mapper, service};
 use crate::module::common::base::BaseResponse;
 use crate::state::AppState;
 use crate::utils::extractors::ValidatedJson;
-use crate::utils::jwt;
+use crate::utils::{jwt, CONFIG};
 use crate::utils::jwt::Claims;
 use axum::extract::{Request, State};
 use axum::http::StatusCode;
@@ -150,13 +150,28 @@ pub async fn refresh_token(
     )
 }
 
+fn get_main_domain(url: &str) -> String {
+    let without_scheme = if let Some(pos) = url.find("://") {
+        &url[pos + 3..]
+    } else {
+        url
+    };
+    let host = without_scheme;
+
+    let parts: Vec<&str> = host.split('.').collect();
+
+    format!("{}.{}", parts[parts.len() - 2], parts[parts.len() - 1])
+}
+
 fn build_cookie(
     refresh_token: String,
     access_token: String,
 ) -> CookieJar {
+    let domain = get_main_domain(CONFIG.client_origin.as_str());
+
     let refresh_cookie = Cookie::build(("refresh_token", refresh_token))
-        .path("/v1/admin/auth/refresh-token")
-        .domain("anasmusa.me")
+        .path(format!("{}/v1/admin/auth/refresh-token", CONFIG.base_path))
+        .domain(domain.clone())
         .http_only(true)
         .secure(true)
         .same_site(SameSite::Lax)
@@ -165,7 +180,7 @@ fn build_cookie(
 
     let access_cookie = Cookie::build(("access_token", access_token))
         .path("/")
-        .domain("anasmusa.me")
+        .domain(domain)
         .http_only(true)
         .secure(true)
         .same_site(SameSite::Lax)

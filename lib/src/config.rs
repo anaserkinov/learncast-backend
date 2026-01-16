@@ -9,7 +9,9 @@ pub struct AppConfig {
     pub jwt_secret_access: String,
     pub telegram_bot_token: String,
     pub r2_endpoint_url: String,
-    pub r2_bucket_name: String
+    pub r2_bucket_name: String,
+    pub client_origin: String,
+    pub base_path: String,
 }
 
 impl AppConfig {
@@ -21,7 +23,9 @@ impl AppConfig {
             jwt_secret_access: env::var("JWT_SECRET_ACCESS").expect("JWT_SECRET_ACCESS missing"),
             telegram_bot_token: env::var("TELEGRAM_BOT_TOKEN").expect("TELEGRAM_BOT_TOKEN missing"),
             r2_endpoint_url: env::var("R2_ENDPOINT_URL").expect("R2_ENDPOINT_URL missing"),
-            r2_bucket_name: env::var("R2_BUCKET_NAME").expect("R2_BUCKET_NAME missing")
+            r2_bucket_name: env::var("R2_BUCKET_NAME").expect("R2_BUCKET_NAME missing"),
+            client_origin: env::var("CLIENT_ORIGIN").expect("CLIENT_ORIGIN missing"),
+            base_path: env::var("BASE_PATH").expect("BASE_PATH missing"),
         }
     }
 }

@@ -8,7 +8,7 @@ use axum_extra::extract::CookieJar;
 use crate::error::AppError;
 use crate::error::auth::AuthError;
 use crate::extractor::accept_language::AcceptLanguage;
-use crate::utils::jwt;
+use crate::utils::{jwt, CONFIG};
 
 pub async fn common_auth_middleware(
     AcceptLanguage(lang): AcceptLanguage,
@@ -50,7 +50,7 @@ pub async fn origin_middleware(
         let header = header_value.to_str()
             .map_err(|_| AuthError::Unauthorized(lang.clone()))?;
 
-        if !header.starts_with("https://learncast.anasmusa.me") {
+        if !header.starts_with(CONFIG.client_origin.as_str()) {
             return Err(AuthError::Unauthorized(lang).into());
         }
     }

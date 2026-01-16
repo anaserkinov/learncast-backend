@@ -1,14 +1,15 @@
 use crate::api_docs::{AdminApiDoc, UserApiDoc};
 use crate::middleware::auth::origin_middleware;
+use crate::middleware::cache::cache_control_middleware;
 use crate::module::{admin, common, user};
 use crate::state::AppState;
+use crate::utils::CONFIG;
 use axum::http::{HeaderName, HeaderValue, Method};
 use axum::{middleware, Router};
 use tower_http::cors::{AllowHeaders, CorsLayer};
 use tower_http::trace::TraceLayer;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::{Config, SwaggerUi};
-use crate::middleware::cache::cache_control_middleware;
 
 pub fn build_app(state: AppState) -> Router {
     let admin_json_path = "/api-doc/admin/openapi.json";
@@ -44,7 +45,7 @@ pub fn build_app(state: AppState) -> Router {
         );
 
     let origins = [
-        "https://learncast.anasmusa.me".parse::<HeaderValue>().unwrap()
+        CONFIG.client_origin.parse::<HeaderValue>().unwrap()
     ];
     Router::new()
         .merge(admin_router)
