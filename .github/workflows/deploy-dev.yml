@@ -42,5 +42,5 @@ jobs:
           port: 22
           script: |
             cd ~/apps/learncast
-            docker-compose pull api
-            docker-compose up -d
+            docker compose pull api
+            docker compose up -d
