@@ -1,21 +1,19 @@
 FROM rust:1.91.1-bookworm AS builder
 
-# Set the working directory inside the container
 WORKDIR /learncast
 RUN mkdir src && \
-    echo "fn main() {}" > src/main.rs
+    echo "fn main() {}" > src/dummy.rs
 
-# Copy the Cargo.toml and Cargo.lock files
 COPY Cargo.toml Cargo.lock ./
+RUN sed -i 's#src/main.rs#src/dummy.rs#' Cargo.toml
 
-# Build the dependencies without the actual source code to cache dependencies separately
 RUN cargo build --release
 
-# Now copy the source code
-RUN rm src/main.rs
+RUN sed -i 's#src/dummy.rs#src/main.rs#' Cargo.toml
+RUN rm src/dummy.rs
+
 COPY src ./src
 
-# Build your application
 RUN cargo build --release
 RUN strip target/release/learncast
 
