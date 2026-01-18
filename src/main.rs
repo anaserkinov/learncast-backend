@@ -12,17 +12,19 @@ mod middleware;
 
 use crate::app::build_app;
 use crate::state::AppState;
+use crate::utils::CONFIG;
+use aws_sdk_s3 as s3;
 use db::postgres::create_pool;
 use redis::Client;
-use tracing_subscriber::EnvFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use aws_sdk_s3 as s3;
-use utoipa::OpenApi;
-use crate::api_docs::AdminApiDoc;
-use crate::utils::CONFIG;
+use tracing_subscriber::EnvFilter;
 
-pub async fn learn_cast() -> anyhow::Result<()> {
+#[tokio::main]
+pub async fn main() -> anyhow::Result<()> {
+    #[cfg(debug_assertions)]
+    dotenvy::from_path(std::env::current_dir()?.join(".env")).ok();
+
     tracing_subscriber::registry()
         .with(
             EnvFilter::new(
@@ -35,7 +37,7 @@ pub async fn learn_cast() -> anyhow::Result<()> {
         .init();
     let db = create_pool(&CONFIG.database_url).await;
 
-    sqlx::migrate!("./migrations")
+    sqlx::migrate!("./src/db/migrations")
         .run(&db)
         .await?;
 

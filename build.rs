@@ -3,7 +3,7 @@ use fluent_syntax::parser;
 use fluent_syntax::ast;
 
 fn main() {
-    let ftl_path = "locales/en/strings.ftl";
+    let ftl_path = "src/locales/en/strings.ftl";
 
     // 1. Tell Cargo to re-run the script if the FTL file changes
     println!("cargo:rerun-if-changed={}", ftl_path);

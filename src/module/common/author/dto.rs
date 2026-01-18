@@ -1,7 +1,6 @@
-use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde::Serialize;
 use time::OffsetDateTime;
-use utoipa::{IntoParams, ToSchema};
+use utoipa::ToSchema;
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CommonAuthorResponse {

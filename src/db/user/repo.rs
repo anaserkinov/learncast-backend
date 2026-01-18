@@ -1,6 +1,5 @@
 use crate::db::user::entity::UserEntity;
 use sqlx::{PgConnection, PgPool};
-use time::OffsetDateTime;
 
 pub async fn insert(   
     connection: &mut PgConnection,
@@ -37,9 +36,8 @@ pub async fn update(
             email = $4,
             telegram_id = $5,
             telegram_username = $6,
-            google_id = $7,
-            updated_at = $8
-        WHERE id = $9
+            google_id = $7
+        WHERE id = $8
         RETURNING *
         "#
     )
@@ -50,7 +48,6 @@ pub async fn update(
         .bind(&user.telegram_id)
         .bind(user.telegram_username)
         .bind(&user.google_id)
-        .bind(OffsetDateTime::now_utc())
         .bind(user.id)
         .fetch_one(connection)
         .await

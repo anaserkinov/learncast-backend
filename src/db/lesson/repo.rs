@@ -1,5 +1,9 @@
 use crate::db::lesson::entity::{LessonEntity, LessonInput, LessonProgressEntity, LessonWithAuthorTopic};
-use sqlx::{Executor, PgConnection, PgPool, Postgres, QueryBuilder};
+use sqlx::Executor;
+use sqlx::PgConnection;
+use sqlx::PgPool;
+use sqlx::Postgres;
+use sqlx::QueryBuilder;
 use time::OffsetDateTime;
 use crate::module::common::enums::{UserProgressStatus};
 use crate::module::common::lesson::dto::QuerySort;

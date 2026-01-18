@@ -8,7 +8,7 @@ use std::sync::LazyLock;
 
 static_loader! {
     pub static LOCALES = {
-        locales: "locales",
+        locales: "./src/locales",
         fallback_language: "en",
     };
 }

@@ -1,4 +1,4 @@
-use crate::db::topic::entity::{TopicEntity, TopicWithAuthor};
+use crate::db::topic::entity::TopicEntity;
 use crate::module::admin::topic::dto::TopicResponse;
 use crate::module::common::topic::mapper::to_response as topic_to_response;
 

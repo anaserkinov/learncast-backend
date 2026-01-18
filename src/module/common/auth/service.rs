@@ -62,7 +62,7 @@ pub async fn refresh_tokens(
             refresh_token_hash: jwt::hash_token(&refresh_token),
             user_agent: Some(user_agent),
             created_at: session.created_at,
-            last_used_at: OffsetDateTime::now_utc()
+            updated_at: OffsetDateTime::now_utc()
         }
     ).await?;
 
@@ -116,7 +116,7 @@ pub async fn signin_with_telegram(
             refresh_token_hash: jwt::hash_token(&refresh_token),
             user_agent: Some(user_agent),
             created_at: OffsetDateTime::now_utc(),
-            last_used_at: OffsetDateTime::now_utc()
+            updated_at: OffsetDateTime::now_utc()
         }
     ).await?;
     tx.commit().await?;
@@ -179,7 +179,7 @@ pub async fn signin_with_google(
             refresh_token_hash: jwt::hash_token(&refresh_token),
             user_agent: Some(user_agent),
             created_at: OffsetDateTime::now_utc(),
-            last_used_at: OffsetDateTime::now_utc()
+            updated_at: OffsetDateTime::now_utc()
         }
     ).await?;
     tx.commit().await?;

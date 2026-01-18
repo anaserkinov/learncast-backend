@@ -8,5 +8,5 @@ pub struct SessionEntity {
     pub refresh_token_hash: String,
     pub user_agent: Option<String>,
     pub created_at: OffsetDateTime,
-    pub last_used_at: OffsetDateTime
+    pub updated_at: OffsetDateTime
 }

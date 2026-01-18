@@ -19,7 +19,7 @@ pub async fn common_auth_middleware(
     let token = if let Some(header_value) = req.headers().get(header::AUTHORIZATION) {
         let header = header_value.to_str()
             .map_err(|_| AuthError::Unauthorized(lang.clone()))?;
-        &header[7..]
+        header.strip_prefix("Bearer ").unwrap_or("")
     } else {
         let jar = CookieJar::from_headers(req.headers());
         &jar.get("access_token")
@@ -97,7 +97,7 @@ pub async fn user_auth_middleware(
     let header = header_value.to_str()
         .map_err(|_| AuthError::Unauthorized(lang.clone()))?;
 
-    let token = &header[7..];
+    let token = header.strip_prefix("Bearer ").unwrap_or("");
     let claims = jwt::validate_access_token(token)
         .map_err(|_| AuthError::Unauthorized(lang.clone()))?;
 
