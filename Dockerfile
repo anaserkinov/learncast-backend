@@ -12,6 +12,7 @@ COPY Cargo.toml Cargo.lock ./
 RUN cargo build --release
 
 # Now copy the source code
+RUN rm -rf src
 COPY src ./src
 
 # Build your application
