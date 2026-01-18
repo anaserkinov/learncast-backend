@@ -4,7 +4,7 @@ WORKDIR /learncast
 RUN mkdir src && \
     echo "fn main() {}" > src/dummy.rs
 
-COPY Cargo.toml Cargo.lock build.rs ./
+COPY Cargo.toml Cargo.lock ./
 RUN sed -i 's#src/main.rs#src/dummy.rs#' Cargo.toml
 
 RUN cargo build --release
@@ -12,6 +12,7 @@ RUN cargo build --release
 RUN sed -i 's#src/dummy.rs#src/main.rs#' Cargo.toml
 RUN rm src/dummy.rs
 
+COPY build.rs ./
 COPY src ./src
 
 RUN cargo build --release
