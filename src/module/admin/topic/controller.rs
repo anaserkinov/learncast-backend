@@ -19,14 +19,17 @@ use crate::utils::extractors::{ValidatedJson, ValidatedPath, ValidatedQuery};
 )]
 pub async fn create_topic(
     State(state): State<AppState>,
+    AcceptLanguage(lang): AcceptLanguage,
     ValidatedJson(body): ValidatedJson<TopicCURequest>,
 ) -> Result<BaseResponse<TopicResponse>, AppError> {
     
     let topic = service::create(
         &state.db,
+        body.author_id,
         body.title,
         body.description,
         body.cover_image_path,
+        lang
     ).await?;
 
     Ok(
@@ -60,7 +63,7 @@ pub async fn update_topic(
         body.cover_image_path,
         lang
     ).await?;
-
+    
     Ok(
         BaseResponse::success(
             mapper::to_response(topic)

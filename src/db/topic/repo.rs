@@ -2,18 +2,19 @@ use crate::db::topic::entity::{TopicEntity, TopicInput, TopicWithAuthor};
 use crate::module::common::enums::UserProgressStatus;
 use crate::module::common::paging::QueryOrder;
 use crate::module::common::topic::dto::QuerySort;
+use crate::module::user::topic::dto::TopicCursor;
 use sqlx::{PgConnection, PgPool, Postgres, QueryBuilder};
 use time::OffsetDateTime;
-use crate::module::user::topic::dto::TopicCursor;
 
 pub async fn insert(db: &PgPool, topic: TopicInput) -> Result<TopicEntity, sqlx::Error> {
     sqlx::query_as::<_, TopicEntity>(
         r#"
-            INSERT INTO topic (title, description, cover_image_path)
-            VALUES ($1, $2, $3)
+            INSERT INTO topic (author_id, title, description, cover_image_path)
+            VALUES ($1, $2, $3, $4)
             RETURNING *
             "#,
     )
+    .bind(topic.author_id)
     .bind(topic.title)
     .bind(topic.description)
     .bind(topic.cover_image_path)
@@ -46,32 +47,32 @@ pub async fn update(
 
 pub async fn delete(
     connection: &mut PgConnection,
-    id: i64
+    id: i64,
 ) -> Result<Option<TopicEntity>, sqlx::Error> {
     let result = sqlx::query_as::<_, TopicEntity>(
         r#"
                UPDATE topic SET deleted_at = NOW() WHERE id = $1
                RETURNING *
-            "#
+            "#,
     )
-        .bind(id)
-        .fetch_optional(connection)
-        .await?;
+    .bind(id)
+    .fetch_optional(connection)
+    .await?;
     Ok(result)
 }
 
 pub async fn deleted(
     db: &PgPool,
-    since: OffsetDateTime
+    since: OffsetDateTime,
 ) -> Result<Vec<(i64, OffsetDateTime)>, sqlx::Error> {
     let result = sqlx::query_as::<_, (i64, OffsetDateTime)>(
         r#"
                SELECT id, deleted_at FROM topic WHERE deleted_at IS NOT NULL AND deleted_at >= $1
-            "#
+            "#,
     )
-        .bind(since)
-        .fetch_all(db)
-        .await?;
+    .bind(since)
+    .fetch_all(db)
+    .await?;
     Ok(result)
 }
 
@@ -79,15 +80,18 @@ fn build_query(
     query: &mut QueryBuilder<Postgres>,
     search: &Option<String>,
     author_id: Option<i64>,
-) {
+) -> bool {
     let mut has_where = false;
 
     query.push(" WHERE topic.deleted_at IS NULL");
     has_where = true;
 
     if let Some(author_id) = author_id {
-        query.push(" JOIN author_topic ON author_topic.topic_id = topic.id AND author_topic.author_id = )")
+        query
+            .push(if has_where { " AND " } else { " WHERE " })
+            .push("topic.author_id = ")
             .push_bind(author_id);
+        has_where = true;
     }
 
     if let Some(search) = search {
@@ -97,6 +101,8 @@ fn build_query(
             .push_bind(format!("{}%", search));
         has_where = true;
     }
+
+    has_where
 }
 
 pub async fn page(
@@ -107,36 +113,42 @@ pub async fn page(
     author_id: Option<i64>,
     sort: Option<QuerySort>,
     order: Option<QueryOrder>,
-) -> Result<Vec<TopicEntity>, sqlx::Error> {
-    let mut query = QueryBuilder::<Postgres>::new("SELECT");
-    query.push(" topic.id, topic.title, topic.description, topic.cover_image_path");
-
-    if author_id.is_some() {
-        query.push(", author_topic.lesson_count, author_topic.total_duration, author_topic.snip_count, author_topic.created_at");
-    } else {
-        query
-            .push(", topic.lesson_count, topic.total_duration, topic.snip_count, topic.created_at");
-    }
+) -> Result<Vec<TopicWithAuthor>, sqlx::Error> {
+    let mut query = QueryBuilder::<Postgres>::new(
+        r#"
+        SELECT topic.id,
+        topic.author_id,
+        topic.title,
+        topic.description,
+        topic.cover_image_path,
+        topic.lesson_count,
+        topic.total_duration,
+        topic.snip_count,
+        topic.created_at
+    "#,
+    );
+    query.push(
+        r#"
+        , author.name AS author_name,
+        author.avatar_path AS author_avatar_path,
+        author.created_at AS author_created_at,
+        author.lesson_count as author_lesson_count
+        "#,
+    );
 
     query.push(" FROM topic");
+
+    query.push(" JOIN author ON author.id = topic.author_id AND author.deleted_at IS NULL");
 
     build_query(&mut query, search, author_id);
 
     query.push(" ORDER BY");
     match sort {
         Some(sort) if sort == QuerySort::SnipCount => {
-            query.push(if author_id.is_some() {
-                " author_topic.snip_count"
-            } else {
-                " topic.snip_count"
-            });
+            query.push(" topic.snip_count");
         }
         _ => {
-            query.push(if author_id.is_some() {
-                " author_topic.created_at"
-            } else {
-                " topic.created_at"
-            });
+            query.push(" topic.created_at");
         }
     }
     match order {
@@ -153,7 +165,7 @@ pub async fn page(
         .push_bind(limit as i64)
         .push(" OFFSET ")
         .push_bind(offset as i64)
-        .build_query_as::<TopicEntity>()
+        .build_query_as::<TopicWithAuthor>()
         .fetch_all(db)
         .await
 }
@@ -168,7 +180,7 @@ pub async fn count(
     Ok(query.build_query_as::<(i64,)>().fetch_one(db).await?.0)
 }
 
-pub async fn page_with_author(
+pub async fn page_cursor(
     db: &PgPool,
     limit: u32,
     cursor: Option<TopicCursor>,
@@ -177,27 +189,30 @@ pub async fn page_with_author(
     author_id: Option<i64>,
     status: &Option<UserProgressStatus>,
     sort: Option<QuerySort>,
-    order: Option<QueryOrder>
+    order: Option<QueryOrder>,
 ) -> Result<Vec<TopicWithAuthor>, sqlx::Error> {
     let (order, order_sign) = if order == Some(QueryOrder::Asc) {
         ("ASC", ">")
-    } else { ("DESC", "<") };
+    } else {
+        ("DESC", "<")
+    };
 
-    let mut query = QueryBuilder::<Postgres>::new("SELECT");
-    query.push(" topic.id, topic.title, topic.description, topic.cover_image_path");
-    query.push(
+    let mut query = QueryBuilder::<Postgres>::new(
         r#"
-        , author_topic.id AS author_topic_id,
-        author_topic.lesson_count,
-        author_topic.total_duration,
-        author_topic.snip_count,
-        author_topic.created_at
-        "#
+        SELECT topic.id,
+        topic.author_id, 
+        topic.title, 
+        topic.description, 
+        topic.cover_image_path,
+        topic.lesson_count,
+        topic.total_duration,
+        topic.snip_count,
+        topic.created_at,
+    "#,
     );
     query.push(
         r#"
-        , author.id AS author_id, 
-        author.name AS author_name, 
+        author.name AS author_name,
         author.avatar_path AS author_avatar_path, 
         author.created_at AS author_created_at, 
         author.lesson_count as author_lesson_count
@@ -205,69 +220,70 @@ pub async fn page_with_author(
     );
 
     if user_id.is_some() {
-        query.push(", author_topic_progress.completed_lesson_count");
+        query.push(", topic_progress.completed_lesson_count");
     }
-    query.push(" FROM author_topic");
+    query.push(" FROM topic");
 
-    query.push(" JOIN topic ON author_topic.topic_id = topic.id AND topic.deleted_at IS NULL");
-    query.push(" JOIN author ON author_topic.author_id = author.id AND author.deleted_at IS NULL");
+    query.push(" JOIN author ON author.id = topic.author_id AND author.deleted_at IS NULL");
 
     if let Some(user_id) = user_id {
         query
-            .push(" LEFT JOIN author_topic_progress ON")
-            .push(" author_topic_progress.topic_id = author_topic.topic_id")
-            .push(" AND author_topic_progress.author_id = author_topic.author_id")
-            .push(" AND author_topic_progress.user_id = ")
+            .push(" LEFT JOIN topic_progress ON")
+            .push(" topic_progress.topic_id = topic.id")
+            .push(" AND topic_progress.author_id = topic.author_id")
+            .push(" AND topic_progress.user_id = ")
             .push_bind(user_id);
     }
 
-    query.push(" WHERE author_topic.lesson_count > 0");
+    let has_where = build_query(&mut query, search, author_id);
+
+    if let Some(status) = status {
+        if let UserProgressStatus::InProgress = status {
+            query.push(if has_where { " AND " } else { " WHERE " })
+                .push("topic_progress.completed_lesson_count != topic.lesson_count");
+        }
+    }
 
     if let Some(cursor) = cursor {
-        query.push(" AND ");
+        query.push(if has_where { " AND " } else { " WHERE " });
         match sort {
-            Some(QuerySort::SnipCount)  => {
-                query.push("(author_topic.snip_count,author_topic.id)").push(order_sign)
-                    .push("(").push_bind(cursor.snip_count).push(",").push_bind(cursor.id).push(")");
-            },
-            Some(QuerySort::CreatedAt)  => {
-                query.push("(author_topic.created_at,author_topic.id)").push(order_sign)
-                    .push("(").push_bind(cursor.created_at).push(",").push_bind(cursor.id).push(")");
+            Some(QuerySort::SnipCount) => {
+                query
+                    .push("(topic.snip_count,topic.id)")
+                    .push(order_sign)
+                    .push("(")
+                    .push_bind(cursor.snip_count)
+                    .push(",")
+                    .push_bind(cursor.id)
+                    .push(")");
+            }
+            Some(QuerySort::CreatedAt) => {
+                query
+                    .push("(topic.created_at,topic.id)")
+                    .push(order_sign)
+                    .push("(")
+                    .push_bind(cursor.created_at)
+                    .push(",")
+                    .push_bind(cursor.id)
+                    .push(")");
             }
             _ => {
-                query.push("author_topic.id").push(order_sign)
-                    .push_bind(cursor.id);
+                query.push("topic.id").push(order_sign).push_bind(cursor.id);
             }
         };
     }
 
-    if let Some(author_id) = author_id {
-        query
-            .push(" AND author_topic.author_id = ")
-            .push_bind(author_id);
-    }
-
-    if let Some(status) = status {
-        if let UserProgressStatus::InProgress = status {
-            query
-                .push(" AND author_topic_progress.completed_lesson_count != topic.lesson_count");
+    query.push(" ORDER BY ").push(match sort {
+        Some(QuerySort::SnipCount) => {
+            format!("topic.snip_count {order}, topic.id {order}")
         }
-    }
-
-    if let Some(search) = search {
-        query
-            .push(" AND title ILIKE ")
-            .push_bind(format!("{}%", search));
-    }
-
-    query.push(" ORDER BY ")
-        .push(
-            match sort {
-                Some(QuerySort::SnipCount) => { format!("author_topic.snip_count {order}, author_topic.id {order}") },
-                Some(QuerySort::CreatedAt) => { format!("author_topic.created_at {order}, author_topic.id {order}") }
-                None => { format!("author_topic.id {order}") }
-            }
-        );
+        Some(QuerySort::CreatedAt) => {
+            format!("topic.created_at {order}, topic.id {order}")
+        }
+        None => {
+            format!("topic.id {order}")
+        }
+    });
 
     query
         .push(" LIMIT ")
@@ -277,11 +293,26 @@ pub async fn page_with_author(
         .await
 }
 
-pub async fn get_by_id(db: &PgPool, id: i64) -> Result<Option<TopicEntity>, sqlx::Error> {
-    Ok(sqlx::query_as::<_, TopicEntity>(
+pub async fn get_by_id(db: &PgPool, id: i64) -> Result<Option<TopicWithAuthor>, sqlx::Error> {
+    Ok(sqlx::query_as::<_, TopicWithAuthor>(
         r#"
-             SELECT * FROM topic
-             WHERE id = $1
+             SELECT
+             topic.id,
+             topic.author_id,
+             topic.title,
+             topic.description,
+             topic.cover_image_path,
+             topic.lesson_count,
+             topic.total_duration,
+             topic.snip_count,
+             topic.created_at,
+             author.name AS author_name,
+             author.avatar_path AS author_avatar_path,
+             author.created_at AS author_created_at,
+             author.lesson_count as author_lesson_count
+             FROM topic
+             JOIN author ON author.id = topic.author_id AND author.deleted_at IS NULL
+             WHERE topic.id = $1
              "#,
     )
     .bind(id)
@@ -304,7 +335,6 @@ pub async fn get_by_lesson_id(db: &PgPool, id: i64) -> Result<Option<TopicEntity
 
 pub async fn update_stats(
     connection: &mut PgConnection,
-    author_id: i64,
     topic_id: i64,
     lesson_delta: i64,
     duration_delta: i64,
@@ -323,30 +353,11 @@ pub async fn update_stats(
     .bind(topic_id)
     .execute(&mut *connection)
     .await?;
-
-    sqlx::query(
-        r#"
-            INSERT INTO author_topic (author_id, topic_id, lesson_count, total_duration)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT(author_id, topic_id)
-            DO UPDATE SET
-                lesson_count = author_topic.lesson_count + EXCLUDED.lesson_count,
-                total_duration = author_topic.total_duration + EXCLUDED.total_duration
-            "#,
-    )
-    .bind(author_id)
-    .bind(topic_id)
-    .bind(lesson_delta)
-    .bind(duration_delta)
-    .execute(connection)
-    .await?;
-
     Ok(())
 }
 
 pub async fn increase_snip_count(
     connection: &mut PgConnection,
-    author_id: i64,
     topic_id: i64,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
@@ -359,19 +370,6 @@ pub async fn increase_snip_count(
     .bind(topic_id)
     .execute(&mut *connection)
     .await?;
-
-    sqlx::query(
-        r#"
-        UPDATE author_topic
-        SET snip_count = snip_count + 1
-        WHERE topic_id = $1 AND author_id = $2
-        "#,
-    )
-    .bind(topic_id)
-    .bind(author_id)
-    .execute(connection)
-    .await?;
-
     Ok(())
 }
 
@@ -383,7 +381,7 @@ pub async fn update_progress(
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
-        INSERT INTO author_topic_progress (user_id, author_id, topic_id, completed_lesson_count)
+        INSERT INTO topic_progress (user_id, author_id, topic_id, completed_lesson_count)
         VALUES (
             $1, $2, $3, (
             SELECT COUNT(id)

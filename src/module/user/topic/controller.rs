@@ -23,7 +23,7 @@ pub async fn page_topic(
     ValidatedQuery(params): ValidatedQuery<TopicPaginationParams>,
     Extension(claims): Extension<Claims>
 ) -> Result<BaseResponse<CursorPagingResponse<TopicResponse>>, AppError> {
-    let topics = service::page_with_author(
+    let topics = service::page_cursor(
         &state.db,
         params.limit,
         params.cursor,

@@ -8,7 +8,6 @@ use utoipa::{IntoParams, ToSchema};
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct TopicResponse {
-    pub id: i64,
     pub topic: CommonTopicResponse,
     pub author: CommonAuthorResponse,
     pub completed_lesson_count: i64

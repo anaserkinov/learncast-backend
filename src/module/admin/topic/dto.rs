@@ -2,18 +2,20 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use utoipa::{IntoParams, ToSchema};
 use validator::{Validate};
+use crate::module::common::author::dto::CommonAuthorResponse;
 use crate::module::common::enums::UserProgressStatus;
 use crate::module::common::paging::QueryOrder;
 use crate::module::common::topic::dto::{CommonTopicResponse, QuerySort};
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct TopicResponse {
-    #[serde(flatten)]
-    pub topic: CommonTopicResponse
+    pub topic: CommonTopicResponse,
+    pub author: CommonAuthorResponse,
 }
 
 #[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct TopicCURequest {
+    pub author_id: i64,
     #[validate(length(min = 3))]
     pub title: String,
     pub description: Option<String>,

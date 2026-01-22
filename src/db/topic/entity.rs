@@ -5,6 +5,7 @@ use time::OffsetDateTime;
 #[derive(Debug, FromRow, SmartDefault)]
 pub struct TopicEntity {
     pub id: i64,
+    pub author_id: i64,
     pub title: String,
     pub description: Option<String>,
     pub cover_image_path: Option<String>,
@@ -16,11 +17,10 @@ pub struct TopicEntity {
 }
 
 #[derive(Debug, FromRow, SmartDefault)]
+#[sqlx(default)]
 pub struct TopicWithAuthor {
     #[sqlx(flatten)]
     pub topic: TopicEntity,
-    pub author_topic_id: i64,
-    pub author_id: i64,
     pub author_name: String,
     pub author_avatar_path: Option<String>,
     #[default(OffsetDateTime::now_utc())]
@@ -31,6 +31,7 @@ pub struct TopicWithAuthor {
 
 #[derive()]
 pub struct TopicInput {
+    pub author_id: i64,
     pub title: String,
     pub description: Option<String>,
     pub cover_image_path: Option<String>

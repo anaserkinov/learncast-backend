@@ -1,4 +1,4 @@
-use crate::db::topic::entity::{TopicEntity, TopicInput, TopicWithAuthor};
+use crate::db::topic::entity::{TopicInput, TopicWithAuthor};
 use crate::error::topic::TopicError;
 use crate::error::AppError;
 use crate::module::common::enums::UserProgressStatus;
@@ -13,11 +13,14 @@ use time::OffsetDateTime;
 
 pub async fn create(
     db: &PgPool,
+    author_id: i64,
     title: String,
     description: Option<String>,
-    cover_image_path: Option<String>
-) -> Result<TopicEntity> {
+    cover_image_path: Option<String>,
+    lang: LanguageIdentifier
+) -> Result<TopicWithAuthor> {
     let topic = TopicInput {
+        author_id,
         title,
         description,
         cover_image_path
@@ -26,6 +29,9 @@ pub async fn create(
         db,
         topic
     ).await?;
+
+    let entity = db::topic::repo::get_by_id(db, entity.id).await?
+        .ok_or(AppError::NotFound(lang))?;
 
     Ok(entity)
 }
@@ -37,18 +43,22 @@ pub async fn update(
     description: Option<String>,
     cover_image_path: Option<String>,
     lang: LanguageIdentifier
-) -> Result<TopicEntity> {
+) -> Result<TopicWithAuthor> {
     let topic = TopicInput {
+        author_id: 1,
         title,
         description,
         cover_image_path
     };
-    let entity = db::topic::repo::update(
+    db::topic::repo::update(
         db,
         id,
         topic
-    ).await?.ok_or(AppError::NotFound(lang))?;
+    ).await?.ok_or(AppError::NotFound(lang.clone()))?;
 
+    let entity = db::topic::repo::get_by_id(db, id).await?
+        .ok_or(AppError::NotFound(lang))?;
+    
     Ok(entity)
 }
 
@@ -61,7 +71,7 @@ pub async fn page(
     author_id: Option<i64>,
     sort: Option<QuerySort>,
     order: Option<QueryOrder>
-) -> Result<(Vec<TopicEntity>, u64)>{
+) -> Result<(Vec<TopicWithAuthor>, u64)>{
     let offset = (page - 1) * limit;
 
     let items = db::topic::repo::page(
@@ -85,7 +95,7 @@ pub async fn page(
     )
 }
 
-pub async fn page_with_author(
+pub async fn page_cursor(
     db: &PgPool,
     limit: u32,
     cursor: Option<String>,
@@ -96,7 +106,7 @@ pub async fn page_with_author(
     sort: Option<QuerySort>,
     order: Option<QueryOrder>
 ) -> Result<(Vec<TopicWithAuthor>, Option<String>)> {
-    let mut items = db::topic::repo::page_with_author(
+    let mut items = db::topic::repo::page_cursor(
         db,
         limit + 1,
         utils::cursor::decode(cursor),
@@ -129,7 +139,7 @@ pub async fn get(
     db: &PgPool,
     id: i64,
     lang: LanguageIdentifier
-) -> Result<TopicEntity>{
+) -> Result<TopicWithAuthor>{
     let topic = db::topic::repo::get_by_id(
         db, id
     ).await?.ok_or(AppError::NotFound(lang))?;

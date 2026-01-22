@@ -48,7 +48,6 @@ pub async fn create(
         if let Some(topic_id) = lesson.topic_id {
             db::topic::repo::increase_snip_count(
                 &mut tx,
-                lesson.author_id,
                 topic_id
             ).await?;
         }

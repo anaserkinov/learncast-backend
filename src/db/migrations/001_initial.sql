@@ -80,6 +80,7 @@ EXECUTE FUNCTION set_updated_at();
 CREATE TABLE topic
 (
     id               BIGSERIAL PRIMARY KEY,
+    author_id        BIGSERIAL,
     title            TEXT        NOT NULL,
     description      TEXT,
     cover_image_path TEXT,
@@ -92,7 +93,7 @@ CREATE TABLE topic
 );
 
 CREATE UNIQUE INDEX idx_topic_unique_active
-    ON topic (title)
+    ON topic (title, author_id)
     WHERE deleted_at IS NULL;
 
 CREATE TRIGGER trg_topic_set_updated_at
@@ -100,19 +101,6 @@ CREATE TRIGGER trg_topic_set_updated_at
     ON topic
     FOR EACH ROW
 EXECUTE FUNCTION set_updated_at();
-
-
-CREATE TABLE author_topic
-(
-    id             BIGSERIAL PRIMARY KEY,
-    author_id      BIGINT      NOT NULL,
-    topic_id       BIGINT      NOT NULL,
-    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    lesson_count   BIGINT      NOT NULL DEFAULT 0,
-    snip_count     BIGINT      NOT NULL DEFAULT 0,
-    total_duration BIGINT      NOT NULL DEFAULT 0,
-    UNIQUE (author_id, topic_id)
-);
 
 -- lesson
 CREATE TABLE lesson
@@ -134,7 +122,7 @@ CREATE TABLE lesson
 );
 
 CREATE UNIQUE INDEX idx_lesson_unique_active
-    ON lesson (topic_id, author_id, title) NULLS NOT DISTINCT
+    ON lesson (topic_id, title) NULLS NOT DISTINCT
     WHERE deleted_at IS NULL;
 
 CREATE TRIGGER trg_lesson_set_updated_at
@@ -157,14 +145,14 @@ CREATE TABLE lesson_progress
     UNIQUE (user_id, lesson_id)
 );
 
-CREATE TABLE author_topic_progress
+CREATE TABLE topic_progress
 (
     id                     BIGSERIAL PRIMARY KEY,
     user_id                BIGINT NOT NULL,
     author_id              BIGINT NOT NULL,
     topic_id               BIGINT NOT NULL,
     completed_lesson_count BIGINT NOT NULL DEFAULT 0,
-    UNIQUE (user_id, author_id, topic_id)
+    UNIQUE (user_id, topic_id)
 );
 
 CREATE TABLE favourite_lesson

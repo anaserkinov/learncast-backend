@@ -1,4 +1,3 @@
-use std::time::Duration;
 use crate::db::lesson::entity::{LessonInput, LessonProgressEntity, LessonWithAuthorTopic};
 use crate::error::lesson::LessonError;
 use crate::error::AppError;
@@ -6,15 +5,16 @@ use crate::module::common::enums::UserProgressStatus;
 use crate::module::common::lesson::dto::QuerySort;
 use crate::module::common::paging::QueryOrder;
 use crate::module::user::lesson::dto::LessonCursor;
+use crate::utils::CONFIG;
 use crate::{db, utils};
 use anyhow::Result;
-use fluent_templates::LanguageIdentifier;
-use sqlx::PgPool;
-use time::OffsetDateTime;
 use aws_sdk_s3 as s3;
 use aws_sdk_s3::presigning::PresigningConfig;
 use ffmpeg_light::probe;
-use crate::utils::CONFIG;
+use fluent_templates::LanguageIdentifier;
+use sqlx::PgPool;
+use std::time::Duration;
+use time::OffsetDateTime;
 
 async fn get_info(s3_client: &s3::Client, path: &str) -> Result<(i64, i64)> {
     let head = s3_client
@@ -69,10 +69,17 @@ pub async fn create(
         file_size: info.0,
     };
 
+    if let Some(topic_id) = topic_id {
+        let topic = db::topic::repo::get_by_id(db, topic_id).await?;
+        if topic.is_none() || topic.unwrap().topic.author_id != author_id{
+            return Err(AppError::NotFound(lang))
+        }
+    }
+
     let mut tx = db.begin().await?;
     let lesson_id = db::lesson::repo::insert(&mut tx, lesson).await?;
     if let Some(topic_id) = topic_id {
-        db::topic::repo::update_stats(&mut tx, author_id, topic_id, 1, info.1).await?;
+        db::topic::repo::update_stats(&mut tx, topic_id, 1, info.1).await?;
     }
     db::author::repo::update_stats(&mut tx, author_id, 1).await?;
     tx.commit().await?;
@@ -125,7 +132,6 @@ pub async fn update(
     if let Some(topic_id) = entity.lesson.topic_id && audio_updated{
         db::topic::repo::update_stats(
             &mut tx,
-            entity.lesson.author_id,
             topic_id,
             0,
             entity.lesson.duration - old_lesson.duration,
@@ -291,7 +297,6 @@ pub async fn delete(db: &PgPool, id: i64, lang: LanguageIdentifier) -> Result<()
         if let Some(topic_id) = lesson.topic_id {
             db::topic::repo::update_stats(
                 &mut tx,
-                lesson.author_id,
                 topic_id,
                 -1,
                 -lesson.duration,
