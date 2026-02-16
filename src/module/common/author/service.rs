@@ -120,9 +120,17 @@ pub async fn delete(
         &mut tx, id
     ).await?;
 
-    if let Some(author) = author && author.lesson_count != 0{
-        return Err(AuthorError::AuthorHasLesson(lang).into())
+    if let Some(author) = author {
+        if author.lesson_count != 0 {
+            return Err(AuthorError::AuthorHasLesson(lang).into())
+        }
+
+        db::topic::repo::delete_by_author_id(
+            &mut tx,
+            author.id
+        ).await?
     }
+
     tx.commit().await?;
     Ok(())
 }

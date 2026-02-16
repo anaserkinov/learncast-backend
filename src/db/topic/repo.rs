@@ -61,6 +61,19 @@ pub async fn delete(
     Ok(result)
 }
 
+pub async fn delete_by_author_id(
+    connection: &mut PgConnection,
+    author_id: i64,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"UPDATE topic SET deleted_at = NOW() WHERE author_id = $1"#,
+    )
+        .bind(author_id)
+        .execute(connection)
+        .await?;
+    Ok(())
+}
+
 pub async fn deleted(
     db: &PgPool,
     since: OffsetDateTime,
