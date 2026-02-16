@@ -6,8 +6,8 @@ use crate::module::common::auth::{mapper, service};
 use crate::module::common::base::BaseResponse;
 use crate::state::AppState;
 use crate::utils::extractors::ValidatedJson;
-use crate::utils::{jwt, CONFIG};
 use crate::utils::jwt::Claims;
+use crate::utils::{jwt, CONFIG};
 use axum::extract::{Request, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -15,8 +15,7 @@ use axum::Extension;
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::CookieJar;
 use axum_extra::TypedHeader;
-use headers::authorization::Bearer;
-use headers::{Authorization, UserAgent};
+use headers::UserAgent;
 use time::Duration;
 
 #[utoipa::path(
@@ -198,9 +197,16 @@ fn build_cookie(
 )]
 pub async fn logout(
     State(state): State<AppState>,
-    TypedHeader(auth): TypedHeader<Authorization<Bearer>>,
+    request: Request,
 ) -> Result<BaseResponse<()>, AppError> {
-    if let Ok(claims) = jwt::validate_access_token(auth.0.token()) {
+    let jar = CookieJar::from_headers(request.headers());
+
+    let access_token = jar
+        .get("access_token")
+        .map(|c| c.value())
+        .unwrap_or("");
+
+    if let Ok(claims) = jwt::validate_access_token(access_token) {
         service::logout(&state.db, claims.sub).await?;
     }
 
