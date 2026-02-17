@@ -4,11 +4,11 @@ use crate::module::common::author::dto::CommonAuthorResponse;
 use crate::module::common::topic::mapper::to_response as topic_to_response;
 
 pub fn to_response(entity: TopicWithAuthor) -> TopicResponse {
-    let topic_id = entity.topic.id;
+    let author_id = entity.topic.author_id;
     TopicResponse {
         topic: topic_to_response(entity.topic),
         author: CommonAuthorResponse{
-            id: topic_id,
+            id: author_id,
             name: entity.author_name,
             avatar_path: entity.author_avatar_path,
             created_at: entity.author_created_at,
