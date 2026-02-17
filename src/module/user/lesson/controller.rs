@@ -25,7 +25,7 @@ pub async fn page_lesson(
     ValidatedQuery(params): ValidatedQuery<LessonPaginationParams>,
     Extension(claims): Extension<Claims>
 ) -> Result<BaseResponse<CursorPagingResponse<LessonResponse>>, AppError> {
-    let topics = service::page_cursor(
+    let lessons = service::page_cursor(
         &state.db,
         params.limit,
         params.cursor,
@@ -42,8 +42,8 @@ pub async fn page_lesson(
     Ok(
         BaseResponse::success(
             CursorPagingResponse::new(
-                topics.0.into_iter().map(mapper::to_response).collect(),
-                topics.1
+                lessons.0.into_iter().map(mapper::to_response).collect(),
+                lessons.1
             )
         )
     )

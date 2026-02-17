@@ -186,7 +186,7 @@ pub async fn page_cursor(
 ) -> Result<(Vec<LessonWithAuthorTopic>, Option<String>)> {
     let mut items = db::lesson::repo::page_cursor(
         db,
-        limit,
+        limit + 1,
         utils::cursor::decode(cursor),
         author_id,
         topic_id,
