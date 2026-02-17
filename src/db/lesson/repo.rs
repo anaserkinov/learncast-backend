@@ -122,14 +122,14 @@ fn build_query(
 
     if let Some(author_id) = author_id {
         query.push(if has_where { " AND " } else { " WHERE " })
-            .push("author_id =").push_bind(author_id);
+            .push("lesson.author_id =").push_bind(author_id);
         has_where = true;
     }
 
     if let Some(topic_id) = topic_id {
         query
             .push(if has_where { " AND " } else { " WHERE " })
-            .push("topic_id = ")
+            .push("lesson.topic_id = ")
             .push_bind(topic_id);
         has_where = true;
     }
