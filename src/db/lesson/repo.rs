@@ -469,7 +469,7 @@ pub async fn update_progress(
         VALUES (
             $1, $2, $3, $4, $5, $6, COALESCE($7, 'in_progress'), $8
         )
-        ON CONFLICT (user_id, lesson_id) DO UPDATE
+        ON CONFLICT ON CONSTRAINT lesson_progress_user_id_lesson_id_key DO UPDATE
             SET last_position_ms = EXCLUDED.last_position_ms,
                 status = COALESCE($7, lesson_progress.status),
                 completed_at = COALESCE(lesson_progress.completed_at, EXCLUDED.completed_at)

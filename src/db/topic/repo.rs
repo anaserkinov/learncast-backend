@@ -404,7 +404,7 @@ pub async fn update_progress(
               AND topic_id = $3
               AND status = 'completed'
             ))
-        ON CONFLICT (user_id, author_id, topic_id) DO UPDATE
+        ON CONFLICT (user_id, topic_id) DO UPDATE
             SET completed_lesson_count = EXCLUDED.completed_lesson_count
                 "#,
     )
