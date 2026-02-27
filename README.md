@@ -2,10 +2,10 @@
   <img src="/assets/images/logo.png" alt="App Logo" width="120" />
 </p>
 
-<h1 align="center">LearnCast</h1>
+<h1 align="center">LearnCast 🦀</h1>
 
 <p align="center">
-  This is the LearnCast backend — a REST API server written in Rust. It handles authentication, content management, audio file delivery, and user progress tracking for the web admin panel and mobile clients (Android and iOS). 🦀
+  This is the LearnCast backend — a REST API server written in Rust. It handles authentication, content management, audio file delivery, and user progress tracking for the web admin panel and mobile clients (Android and iOS).
 </p>
 
 ---
@@ -37,7 +37,6 @@
 |---|---|
 | HTTP framework | `axum` 0.8 + `tokio` 1.48 |
 | Database | `sqlx` 0.8 (PostgreSQL, async, compile-time checked queries) |
-| Cache / token store | `redis` 1.0 (async via `tokio-comp`) |
 | Object storage | `aws-sdk-s3` 1.119 (Cloudflare R2 via custom endpoint) |
 | Authentication | `jsonwebtoken` 10 (HS256) |
 | Google Sign-In | `google-cloud-auth` 1.3 (ID token verification) |
