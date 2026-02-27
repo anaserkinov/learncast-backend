@@ -94,7 +94,9 @@ pub async fn signin(
         (
             build_cookie(
                 result.1,
+                Duration::days(7),
                 result.2,
+                Duration::minutes(15),
             ),
             BaseResponse::success(mapper::to_response(result.0))
         ).into_response()
@@ -142,7 +144,9 @@ pub async fn refresh_token(
         (
             build_cookie(
                 result.0,
+                Duration::days(7),
                 result.1,
+                Duration::minutes(15),
             ),
             StatusCode::OK,
         ).into_response()
@@ -164,7 +168,9 @@ fn get_main_domain(url: &str) -> String {
 
 fn build_cookie(
     refresh_token: String,
+    refresh_token_max_age: Duration,
     access_token: String,
+    access_token_max_age: Duration,
 ) -> CookieJar {
     let domain = get_main_domain(CONFIG.client_origin.as_str());
 
@@ -174,7 +180,7 @@ fn build_cookie(
         .http_only(true)
         .secure(true)
         .same_site(SameSite::Lax)
-        .max_age(Duration::days(7))
+        .max_age(refresh_token_max_age)
         .build();
 
     let access_cookie = Cookie::build(("access_token", access_token))
@@ -183,8 +189,9 @@ fn build_cookie(
         .http_only(true)
         .secure(true)
         .same_site(SameSite::Lax)
-        .max_age(Duration::minutes(15))
+        .max_age(access_token_max_age)
         .build();
+
 
     let jar = CookieJar::new().add(refresh_cookie).add(access_cookie);
     jar
@@ -198,7 +205,7 @@ fn build_cookie(
 pub async fn logout(
     State(state): State<AppState>,
     request: Request,
-) -> Result<BaseResponse<()>, AppError> {
+) -> Result<Response, AppError> {
     let jar = CookieJar::from_headers(request.headers());
 
     let access_token = jar
@@ -210,5 +217,15 @@ pub async fn logout(
         service::logout(&state.db, claims.sub).await?;
     }
 
-    Ok(BaseResponse::empty())
+    Ok(
+        (
+            build_cookie(
+                "".to_string(),
+                Duration::seconds(0),
+                "".to_string(),
+                Duration::seconds(0),
+            ),
+            BaseResponse::<()>::empty()
+        ).into_response()
+    )
 }
