@@ -225,7 +225,7 @@ pub async fn logout(
                 "".to_string(),
                 Duration::seconds(0),
             ),
-            BaseResponse::<()>::empty()
+            StatusCode::OK,
         ).into_response()
     )
 }
