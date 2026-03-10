@@ -17,8 +17,7 @@ pub struct TelegramData {
     pub last_name: Option<String>,
     pub username: Option<String>,
     pub photo_url: Option<String>,
-    #[serde(with = "time::serde::rfc3339::option")]
-    pub auth_date: Option<OffsetDateTime>,
+    pub auth_date: Option<i64>,
     pub hash: String
 }
 
