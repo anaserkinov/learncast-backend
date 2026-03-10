@@ -77,11 +77,11 @@ pub async fn upload(
             let path = Path::new(&path_str);
 
             if let Some(parent) = path.parent() && let Err(_) = fs::create_dir_all(parent) {
-                return Err(AppError::Internal(lang))
+                return Err(AppError::internal(lang))
             }
 
             if let Err(_) = fs::write(&path, &data) {
-                return Err(AppError::Internal(lang))
+                return Err(AppError::internal(lang))
             }
         }
     }
@@ -133,7 +133,7 @@ pub async fn upload_url(
     let audio_path = format!("{}/{}", "audio", filename);
 
     let expires_in = PresigningConfig::expires_in(Duration::from_mins(1))
-        .map_err(|_| AppError::Internal(lang.clone()))?;
+        .map_err(|_| AppError::internal(lang.clone()))?;
 
     let presigned_request = state.s3_client
         .put_object()
@@ -143,7 +143,7 @@ pub async fn upload_url(
         .content_type(params.mime_type)
         .presigned(expires_in)
         .await
-        .map_err(|_| { AppError::Internal(lang.clone()) })?;
+        .map_err(|_| { AppError::internal(lang.clone()) })?;
 
     Ok(
         BaseResponse::success(
@@ -188,7 +188,7 @@ pub async fn download_file(
 
         let expires_in = PresigningConfig::expires_in(
             Duration::from_mins((((audio_duration_mins / 10) + 1) * 10) as u64)
-        ).map_err(|_| AppError::Internal(lang.clone()))?;
+        ).map_err(|_| AppError::internal(lang.clone()))?;
         let presigned_request = state.s3_client
             .get_object()
             .bucket(CONFIG.r2_bucket_name.clone())
@@ -196,7 +196,7 @@ pub async fn download_file(
             .presigned(expires_in)
             .await
             .map_err(|e| { eprintln!("{:?}", e);
-                AppError::Internal(lang.clone()) })?;
+                AppError::internal(lang.clone()) })?;
 
         let mut response = Redirect::temporary(
             &presigned_request.uri().to_string()
@@ -231,7 +231,7 @@ pub async fn download_file(
 
             Ok(response)
         }
-        Err(_) => Err(AppError::Internal(lang))
+        Err(_) => Err(AppError::internal(lang))
     }
 }
 

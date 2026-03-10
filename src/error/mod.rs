@@ -32,7 +32,10 @@ pub enum AppError {
         message: String,
     },
     #[error("Internal")]
-    Internal(LanguageIdentifier),
+    Internal {
+        lang: LanguageIdentifier,
+        message: Option<String>,
+    },
     #[error("UnsupportedFileType")]
     UnsupportedFileType(LanguageIdentifier),
     #[error("FileTooLarge")]
@@ -50,6 +53,15 @@ pub enum AppError {
     Snip(SnipError),
 }
 
+impl AppError {
+    pub fn internal(lang: LanguageIdentifier) -> Self {
+        Self::Internal {
+            lang,
+            message: None,
+        }
+    }
+}
+
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, code, message, data_payload) = match self {
@@ -65,10 +77,10 @@ impl IntoResponse for AppError {
                 message,
                 None
             ),
-            AppError::Internal(lang) => (
+            AppError::Internal { lang, message } => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 100003,
-                t(&lang, strings::INTERNAL_ERROR),
+                message.unwrap_or(t(&lang, strings::INTERNAL_ERROR)),
                 None,
             ),
             AppError::UnsupportedFileType(lang) => (
@@ -103,7 +115,7 @@ impl IntoResponse for AppError {
 
 impl From<sqlx::Error> for AppError {
     fn from(value: Error) -> Self {
-        AppError::Internal("en-US".parse().unwrap())
+        AppError::internal("en-US".parse().unwrap())
     }
 }
 
@@ -117,6 +129,9 @@ impl From<anyhow::Error> for AppError {
             }
         }
 
-        AppError::Internal("en-US".parse().unwrap())
+        AppError::Internal {
+            lang: "en-US".parse().unwrap(),
+            message: Some(error.to_string())
+        }
     }
 }
