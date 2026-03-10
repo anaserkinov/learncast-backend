@@ -15,8 +15,8 @@ pub fn build_app(state: AppState) -> Router {
     let admin_json_path = "/api-doc/admin/openapi.json";
     let user_json_path = "/api-doc/user/openapi.json";
 
-    let admin_config = Config::from(format!("/learncast{}", admin_json_path));
-    let user_config = Config::from(format!("/learncast{}", user_json_path));
+    let admin_config = Config::from(format!("{}{}", CONFIG.base_path, admin_json_path));
+    let user_config = Config::from(format!("{}{}", CONFIG.base_path, user_json_path));
 
     let admin_router = Router::new()
         .nest("/v1/admin", admin::auth::routes::routes())

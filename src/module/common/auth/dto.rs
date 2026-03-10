@@ -3,13 +3,31 @@ use time::OffsetDateTime;
 use utoipa::ToSchema;
 use validator::Validate;
 
-#[derive(Deserialize, ToSchema, Validate)]
-pub struct SignInRequest {
-    pub telegram_data: Option<String>,
-    pub google_data: Option<String>
+#[derive(Deserialize, ToSchema)]
+#[serde(tag = "method", rename_all = "snake_case")]
+pub enum LoginRequest {
+    Telegram { data: TelegramData },
+    Google { data: GoogleData }
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Validate)]
+pub struct TelegramData {
+    pub id: i64,
+    pub first_name: String,
+    pub last_name: Option<String>,
+    pub username: Option<String>,
+    pub photo_url: Option<String>,
+    #[serde(with = "time::serde::rfc3339::option")]
+    pub auth_date: Option<OffsetDateTime>,
+    pub hash: String
 }
 
 #[derive(Deserialize, ToSchema, Validate)]
+pub struct GoogleData {
+    pub id_token: String
+}
+
+#[derive(Deserialize, ToSchema)]
 pub struct RefreshTokenRequest {
     pub refresh_token: String
 }

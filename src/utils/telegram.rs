@@ -3,8 +3,8 @@ use anyhow::Result;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use hmac::{Hmac, Mac};
-use base64::Engine;
 use serde_json::Value;
+use crate::module::common::auth::dto::TelegramData;
 
 type HmacSha256 = Hmac<Sha256>;
 
@@ -17,12 +17,12 @@ pub struct TelegramAuthData {
     pub photo_url: Option<String>
 }
 
-pub fn verify_telegram_login(data: &str, bot_token: &str) -> Result<TelegramAuthData> {
-    let decoded = base64::engine::general_purpose::URL_SAFE_NO_PAD
-        .decode(data)
-        .map_err(|_| anyhow::anyhow!("Base64 decode failed"))?;
+pub fn verify_telegram_login(
+    data: &TelegramData,
+    bot_token: &str
+) -> Result<TelegramAuthData> {
 
-    let json_string = String::from_utf8(decoded)?;
+    let json_string = serde_json::to_string(data)?;
     let value: Value = serde_json::from_str(&json_string)?;
 
     let now = SystemTime::now()

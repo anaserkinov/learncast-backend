@@ -2,13 +2,14 @@ use crate::db;
 use crate::db::session::entity::SessionEntity;
 use crate::db::user::entity::UserEntity;
 use crate::error::auth::AuthError;
+use crate::error::AppError;
+use crate::module::common::auth::dto::{GoogleData, TelegramData};
 use crate::utils::jwt;
 use crate::utils::telegram::verify_telegram_login;
 use fluent_templates::LanguageIdentifier;
 use google_cloud_auth::credentials::idtoken::verifier;
 use sqlx::PgPool;
 use time::OffsetDateTime;
-use crate::error::AppError;
 
 pub async fn logout(
     db: &PgPool,
@@ -70,11 +71,11 @@ pub async fn refresh_tokens(
 }
 
 
-pub async fn signin_with_telegram(
+pub async fn login_with_telegram(
     db: &PgPool,
     user_agent: String,
     role: String,
-    data: String,
+    data: TelegramData,
     lang: LanguageIdentifier
 ) -> Result<(UserEntity, String, String), AppError>{
     let auth_data = verify_telegram_login(
@@ -124,16 +125,16 @@ pub async fn signin_with_telegram(
     Ok((entity, refresh_token, access_token))
 }
 
-pub async fn signin_with_google(
+pub async fn login_with_google(
     db: &PgPool,
     user_agent: String,
     role: String,
-    data: String,
+    data: GoogleData,
     lang: LanguageIdentifier
 ) -> Result<(UserEntity, String, String), AppError>{
     let verifier = verifier::Builder::new(vec!["22454749576-42ii04497d5aceqndkbvpnvn29nvub02.apps.googleusercontent.com"])
             .build();
-    let auth_data = verifier.verify(&data)
+    let auth_data = verifier.verify(&data.id_token)
         .await
         .map_err(|_| AuthError::Unauthorized(lang.clone()))?;
 

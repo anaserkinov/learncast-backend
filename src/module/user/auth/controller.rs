@@ -1,37 +1,50 @@
 use crate::error::AppError;
 use crate::extractor::accept_language::AcceptLanguage;
-use crate::module::common::auth::dto::{Credentials, LoginResponse, RefreshTokenRequest, SignInRequest};
+use crate::module::common::auth::dto::{Credentials, LoginRequest, LoginResponse, RefreshTokenRequest};
 use crate::module::common::auth::{mapper, service};
 use crate::module::common::base::BaseResponse;
 use crate::state::AppState;
-use crate::utils::extractors::ValidatedJson;
 use crate::utils::jwt;
 use axum::extract::State;
+use axum::Json;
 use axum_extra::TypedHeader;
 use headers::authorization::Bearer;
 use headers::{Authorization, UserAgent};
 
 #[utoipa::path(
     post,
-    path = "/v1/user/auth/signin",
-    request_body = SignInRequest,
+    path = "/v1/user/auth/login",
+    request_body = LoginRequest,
     responses(
         (status = 200, body = LoginResponse)
     ),
     tag = "Auth"
 )]
-pub async fn signin(
+pub async fn login(
     State(state): State<AppState>,
     AcceptLanguage(lang): AcceptLanguage,
     TypedHeader(user_agent): TypedHeader<UserAgent>,
-    ValidatedJson(body): ValidatedJson<SignInRequest>,
+    Json(body): Json<LoginRequest>,
 ) -> Result<BaseResponse<LoginResponse>, AppError> {
-    let result = if let Some(telegram_data) = body.telegram_data {
-        service::signin_with_telegram(&state.db, user_agent.to_string(), "user".into(), telegram_data, lang).await
-    } else if let Some(google_data) = body.google_data {
-        service::signin_with_google(&state.db, user_agent.to_string(), "user".into(), google_data, lang).await
-    } else {
-        return Err(AppError::Internal(lang).into());
+    let result = match body {
+        LoginRequest::Telegram { data } => {
+            service::login_with_telegram(
+                &state.db,
+                user_agent.to_string(),
+                "user".into(),
+                data,
+                lang,
+            ).await
+        },
+        LoginRequest::Google { data } =>  {
+            service::login_with_google(
+                &state.db,
+                user_agent.to_string(),
+                "user".into(),
+                data,
+                lang,
+            ).await
+        }
     }?;
 
     Ok(BaseResponse::success(LoginResponse {
@@ -57,7 +70,7 @@ pub async fn refresh_token(
     State(state): State<AppState>,
     TypedHeader(user_agent): TypedHeader<UserAgent>,
     AcceptLanguage(lang): AcceptLanguage,
-    ValidatedJson(body): ValidatedJson<RefreshTokenRequest>,
+    Json(body): Json<RefreshTokenRequest>,
 ) -> Result<BaseResponse<Credentials>, AppError> {
     let result = service::refresh_tokens(
         &state.db,

@@ -4,7 +4,7 @@ use utoipa::openapi::security::{ApiKeyValue, HttpAuthScheme};
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        crate::module::user::auth::controller::signin,
+        crate::module::user::auth::controller::login,
         crate::module::user::auth::controller::refresh_token,
         crate::module::user::auth::controller::logout,
 
@@ -32,6 +32,7 @@ use utoipa::openapi::security::{ApiKeyValue, HttpAuthScheme};
     ),
     components(
         schemas(
+            crate::module::common::auth::dto::LoginRequest,
             crate::module::common::enums::UserProgressStatus,
             crate::module::common::paging::QueryOrder,
             crate::module::common::topic::dto::QuerySort,
@@ -46,7 +47,7 @@ pub struct UserApiDoc;
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        crate::module::admin::auth::controller::signin,
+        crate::module::admin::auth::controller::login,
         crate::module::admin::auth::controller::get_me,
         crate::module::admin::auth::controller::refresh_token,
         crate::module::admin::auth::controller::logout,
@@ -75,6 +76,7 @@ pub struct UserApiDoc;
     ),
     components(
         schemas(
+            crate::module::common::auth::dto::LoginRequest,
             crate::module::common::enums::UserProgressStatus,
             crate::module::common::paging::QueryOrder,
             crate::module::common::topic::dto::QuerySort,

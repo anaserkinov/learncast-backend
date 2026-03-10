@@ -1,17 +1,16 @@
 use crate::error::auth::AuthError;
 use crate::error::AppError;
 use crate::extractor::accept_language::AcceptLanguage;
-use crate::module::common::auth::dto::{SignInRequest, UserResponse};
+use crate::module::common::auth::dto::{LoginRequest, UserResponse};
 use crate::module::common::auth::{mapper, service};
 use crate::module::common::base::BaseResponse;
 use crate::state::AppState;
-use crate::utils::extractors::ValidatedJson;
 use crate::utils::jwt::Claims;
 use crate::utils::{jwt, CONFIG};
 use axum::extract::{Request, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Extension;
+use axum::{Extension, Json};
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use axum_extra::extract::CookieJar;
 use axum_extra::TypedHeader;
@@ -48,8 +47,8 @@ pub async fn get_me(
 
 #[utoipa::path(
     post,
-    path = "/v1/admin/auth/signin",
-    request_body = SignInRequest,
+    path = "/v1/admin/auth/login",
+    request_body = LoginRequest,
     responses(
         (
             status = 200,
@@ -62,34 +61,33 @@ pub async fn get_me(
     ),
     tag = "Auth"
 )]
-pub async fn signin(
+pub async fn login(
     State(state): State<AppState>,
     AcceptLanguage(lang): AcceptLanguage,
     TypedHeader(user_agent): TypedHeader<UserAgent>,
-    ValidatedJson(body): ValidatedJson<SignInRequest>,
+    Json(body): Json<LoginRequest>,
 ) -> Result<Response, AppError> {
-    let result = if let Some(telegram_data) = body.telegram_data {
-        service::signin_with_telegram(
-            &state.db,
-            user_agent.to_string(),
-            "admin".into(),
-            telegram_data,
-            lang,
-        )
-            .await
-    } else if let Some(google_data) = body.google_data {
-        service::signin_with_google(
-            &state.db,
-            user_agent.to_string(),
-            "admin".into(),
-            google_data,
-            lang,
-        )
-            .await
-    } else {
-        return Err(AuthError::InvalidCredentials(lang).into());
+    let result = match body {
+        LoginRequest::Telegram { data } => {
+            service::login_with_telegram(
+                &state.db,
+                user_agent.to_string(),
+                "admin".into(),
+                data,
+                lang,
+            ).await
+        },
+        LoginRequest::Google { data } =>  {
+            service::login_with_google(
+                &state.db,
+                user_agent.to_string(),
+                "admin".into(),
+                data,
+                lang,
+            ).await
+        }
     }?;
-
+    
     Ok(
         (
             build_cookie(
