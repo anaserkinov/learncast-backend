@@ -1,26 +1,16 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::module::common::auth::dto::TelegramData;
 use anyhow::Result;
-use serde::Deserialize;
-use sha2::{Digest, Sha256};
 use hmac::{Hmac, Mac};
 use serde_json::Value;
-use crate::module::common::auth::dto::TelegramData;
+use sha2::{Digest, Sha256};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 type HmacSha256 = Hmac<Sha256>;
-
-#[derive(Debug, Deserialize)]
-pub struct TelegramAuthData {
-    pub id: i64,
-    pub first_name: String,
-    pub last_name: Option<String>,
-    pub username: Option<String>,
-    pub photo_url: Option<String>
-}
 
 pub fn verify_telegram_login(
     data: &TelegramData,
     bot_token: &str
-) -> Result<TelegramAuthData> {
+) -> Result<()> {
 
     let json_string = serde_json::to_string(data)?;
     let value: Value = serde_json::from_str(&json_string)?;
@@ -69,9 +59,6 @@ pub fn verify_telegram_login(
     if calculated_hash != provided_hash {
         return Err(anyhow::anyhow!("Invalid Telegram auth hash"));
     }
-
-
-    let auth_data: TelegramAuthData = serde_json::from_str(&json_string)?;
-
-    Ok(auth_data)
+    
+    Ok(())
 }

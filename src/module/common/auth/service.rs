@@ -78,23 +78,23 @@ pub async fn login_with_telegram(
     data: TelegramData,
     lang: LanguageIdentifier
 ) -> Result<(UserEntity, String, String), AppError>{
-    let auth_data = verify_telegram_login(
+    verify_telegram_login(
         &data,
         &crate::utils::CONFIG.telegram_bot_token,
     )?;
 
-    let entity = db::user::repo::find_by_telegram_id(db, auth_data.id)
+    let entity = db::user::repo::find_by_telegram_id(db, data.id)
         .await?;
 
     let mut tx = db.begin().await?;
     let user = UserEntity {
         id: 1,
-        first_name: auth_data.first_name,
-        last_name: auth_data.last_name,
-        avatar_path: auth_data.photo_url,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        avatar_path: data.photo_url,
         email: None,
-        telegram_id: Some(auth_data.id),
-        telegram_username: auth_data.username,
+        telegram_id: Some(data.id),
+        telegram_username: data.username,
         google_id: None,
         password_hash: None,
         is_admin: false,
