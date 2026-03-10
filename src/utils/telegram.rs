@@ -34,7 +34,7 @@ pub fn verify_telegram_login(
     let mut params: Vec<(String, String)> = value.as_object()
         .ok_or_else(|| anyhow::anyhow!("Invalid JSON format"))?
         .iter()
-        .filter(|(k, _)| k.as_str() != "hash")
+        .filter(|(k, v)| k.as_str() != "hash" && !v.is_null())
         .map(|(k, v)| {
             (k.clone(), v.as_str().map(|s| s.to_string()).unwrap_or_else(|| v.to_string()))
         })
