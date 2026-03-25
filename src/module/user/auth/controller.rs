@@ -30,6 +30,7 @@ pub async fn login(
         LoginRequest::Telegram { data } => {
             service::login_with_telegram(
                 &state.db,
+                &state.jwks_cache,
                 user_agent.to_string(),
                 "user".into(),
                 data,

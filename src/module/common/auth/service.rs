@@ -5,7 +5,7 @@ use crate::error::auth::AuthError;
 use crate::error::AppError;
 use crate::module::common::auth::dto::{GoogleData, TelegramData};
 use crate::utils::jwt;
-use crate::utils::telegram::verify_telegram_login;
+use crate::utils::telegram::{verify_telegram_login, JwksCache};
 use fluent_templates::LanguageIdentifier;
 use google_cloud_auth::credentials::idtoken::verifier;
 use sqlx::PgPool;
@@ -73,28 +73,32 @@ pub async fn refresh_tokens(
 
 pub async fn login_with_telegram(
     db: &PgPool,
+    jwks_cache: &JwksCache,
     user_agent: String,
     role: String,
     data: TelegramData,
     lang: LanguageIdentifier
 ) -> Result<(UserEntity, String, String), AppError>{
-    verify_telegram_login(
+    let data = verify_telegram_login(
+        jwks_cache,
         &data,
-        &crate::utils::CONFIG.telegram_bot_token,
-    )?;
+        &crate::utils::CONFIG.telegram_bot_client_id,
+        None
+    ).await?;
 
-    let entity = db::user::repo::find_by_telegram_id(db, data.id)
+    let user_id = data.id.parse::<i64>().unwrap();
+    let entity = db::user::repo::find_by_telegram_id(db, user_id)
         .await?;
 
     let mut tx = db.begin().await?;
     let user = UserEntity {
         id: 1,
-        first_name: data.first_name,
-        last_name: data.last_name,
-        avatar_path: data.photo_url,
+        first_name: data.name,
+        last_name: None,
+        avatar_path: data.picture,
         email: None,
-        telegram_id: Some(data.id),
-        telegram_username: data.username,
+        telegram_id: Some(user_id),
+        telegram_username: data.preferred_username,
         google_id: None,
         password_hash: None,
         is_admin: false,

@@ -10,15 +10,9 @@ pub enum LoginRequest {
     Google { data: GoogleData }
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Validate)]
+#[derive(Deserialize, ToSchema, Validate)]
 pub struct TelegramData {
-    pub id: i64,
-    pub first_name: String,
-    pub last_name: Option<String>,
-    pub username: Option<String>,
-    pub photo_url: Option<String>,
-    pub auth_date: Option<i64>,
-    pub hash: String
+    pub id_token: String
 }
 
 #[derive(Deserialize, ToSchema, Validate)]
@@ -55,4 +49,18 @@ pub struct Credentials {
 pub struct LoginResponse {
     pub user: UserResponse,
     pub credentials: Credentials
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct TelegramClaims {
+    pub iss: String,
+    pub aud: String,
+    pub sub: String,
+    pub iat: i64,
+    pub exp: i64,
+    pub id: String,
+    pub name: String,
+    pub preferred_username: Option<String>,
+    pub picture: Option<String>,
+    pub phone_number: Option<String>
 }

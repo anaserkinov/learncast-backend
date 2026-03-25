@@ -19,6 +19,7 @@ use redis::Client;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::EnvFilter;
+use crate::utils::telegram::JwksCache;
 
 #[tokio::main]
 pub async fn main() -> anyhow::Result<()> {
@@ -53,7 +54,11 @@ pub async fn main() -> anyhow::Result<()> {
         .await;
     let s3_client = s3::Client::new(&s3_config);
 
-    let state = AppState::new(db, redis_client, s3_client);
+    let jwks_cache = JwksCache::new();
+    // Pre-warm the key cache at startup.
+    jwks_cache.refresh().await.expect("Failed to fetch Telegram JWKS");
+
+    let state = AppState::new(db, redis_client, s3_client, jwks_cache);
 
     let app = build_app(state);
 

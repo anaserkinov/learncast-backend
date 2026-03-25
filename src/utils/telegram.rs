@@ -1,64 +1,155 @@
-use crate::module::common::auth::dto::TelegramData;
+use crate::module::common::auth::dto::{TelegramClaims, TelegramData};
 use anyhow::Result;
-use hmac::{Hmac, Mac};
-use serde_json::Value;
-use sha2::{Digest, Sha256};
-use std::time::{SystemTime, UNIX_EPOCH};
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use base64::Engine;
+use jsonwebtoken::{decode, decode_header, DecodingKey, Validation};
+use reqwest::Client;
+use serde::Deserialize;
+use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
+use thiserror::Error;
 
-type HmacSha256 = Hmac<Sha256>;
+const JWKS_URL: &str = "https://oauth.telegram.org/.well-known/jwks.json";
+const TELEGRAM_ISSUER: &str = "https://oauth.telegram.org";
 
-pub fn verify_telegram_login(
+pub async fn verify_telegram_login(
+    jwks_cache: &JwksCache,
     data: &TelegramData,
-    bot_token: &str
-) -> Result<()> {
+    bot_id: &str,
+    nonce: Option<&str>,
+) -> Result<TelegramClaims> {
+    let id_token = &data.id_token.as_str();
+    let header = decode_header(id_token)?;
+    let kid = header.kid.ok_or(TelegramAuthError::MissingKid)?;
 
-    let json_string = serde_json::to_string(data)?;
-    let value: Value = serde_json::from_str(&json_string)?;
+    let jwk = jwks_cache.get_key(&kid).await?;
 
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)?
-        .as_secs() as i64;
+    let decoding_key = jwk_to_decoding_key(&jwk)?;
 
-    let auth_date = value["auth_date"]
-        .as_i64()
-        .ok_or_else(|| anyhow::anyhow!("Missing auth_date"))?;
+    let alg = header.alg;
+    let mut validation = Validation::new(alg);
+    validation.set_audience(&[bot_id]);
+    validation.set_issuer(&[TELEGRAM_ISSUER]);
 
-    if now - auth_date > 15 {
-        return Err(anyhow::anyhow!("Telegram auth data expired"));
+    let token_data = decode::<TelegramClaims>(id_token, &decoding_key, &validation)?;
+    let claims = token_data.claims;
+
+    if let Some(_expected_nonce) = nonce {
+        // The nonce is included as a plain claim in the Telegram ID token.
+        // Add `nonce: Option<String>` to TelegramClaims and compare here.
+        // For now this is left as an extension point.
     }
 
-    let provided_hash = value["hash"]
-        .as_str()
-        .ok_or_else(|| anyhow::anyhow!("Missing hash"))?;
+    Ok(claims)
+}
 
-    let mut params: Vec<(String, String)> = value.as_object()
-        .ok_or_else(|| anyhow::anyhow!("Invalid JSON format"))?
-        .iter()
-        .filter(|(k, v)| k.as_str() != "hash" && !v.is_null())
-        .map(|(k, v)| {
-            (k.clone(), v.as_str().map(|s| s.to_string()).unwrap_or_else(|| v.to_string()))
+#[derive(Debug, Error)]
+pub enum TelegramAuthError {
+    #[error("Failed to fetch JWKS: {0}")]
+    JwksFetch(#[from] reqwest::Error),
+    #[error("Key ID (kid) not found in JWKS")]
+    KeyNotFound,
+    #[error("Invalid JWT: {0}")]
+    InvalidToken(#[from] jsonwebtoken::errors::Error),
+    #[error("Missing 'kid' header in token")]
+    MissingKid,
+    #[error("Unsupported key type")]
+    UnsupportedKeyType,
+    #[error("Lock error")]
+    LockError
+}
+
+#[derive(Debug, Deserialize)]
+struct Jwks {
+    keys: Vec<Jwk>,
+}
+
+/// A minimal JWK — only the fields needed for RS256/ES256 verification.
+#[derive(Debug, Deserialize, Clone)]
+struct Jwk {
+    kid: String,
+    kty: String,   // "RSA" | "EC"
+    alg: Option<String>,
+    // RSA fields
+    n: Option<String>,
+    e: Option<String>,
+    // EC fields
+    crv: Option<String>,
+    x: Option<String>,
+    y: Option<String>,
+}
+
+pub struct JwksCache {
+    http: Client,
+    /// kid → Jwk
+    keys: RwLock<HashMap<String, Jwk>>,
+}
+
+impl JwksCache {
+    pub fn new() -> Arc<Self> {
+        Arc::new(Self {
+            http: Client::new(),
+            keys: RwLock::new(HashMap::new()),
         })
-        .collect();
-    params.sort_by(|a, b| a.0.cmp(&b.0));
-
-    let data_check_string = params
-        .iter()
-        .map(|(k, v)| format!("{}={}", k, v))
-        .collect::<Vec<_>>()
-        .join("\n");
-
-    let secret_key = Sha256::digest(bot_token.as_bytes());
-
-    let mut mac = HmacSha256::new_from_slice(&secret_key)
-        .expect("HMAC can take key of any size");
-
-    mac.update(data_check_string.as_bytes());
-
-    let calculated_hash = hex::encode(mac.finalize().into_bytes());
-
-    if calculated_hash != provided_hash {
-        return Err(anyhow::anyhow!("Invalid Telegram auth hash"));
     }
-    
-    Ok(())
+
+    /// Refresh the local key cache from Telegram's JWKS endpoint.
+    pub async fn refresh(&self) -> Result<(), TelegramAuthError> {
+        let jwks: Jwks = self.http.get(JWKS_URL).send().await?.json().await?;
+        let mut cache = self.keys.write()
+            .map_err(|e| {TelegramAuthError::LockError})?;
+        cache.clear();
+        for key in jwks.keys {
+            cache.insert(key.kid.clone(), key);
+        }
+        Ok(())
+    }
+
+    /// Look up a key by `kid`. If not found, refresh once and retry.
+    async fn get_key(&self, kid: &str) -> Result<Jwk, TelegramAuthError> {
+        {
+            let cache = self.keys.read()
+                .map_err(|e| {TelegramAuthError::LockError})?;
+            if let Some(k) = cache.get(kid) {
+                return Ok(k.clone());
+            }
+        }
+        // Key unknown — could be a rotation; fetch fresh keys.
+        self.refresh().await?;
+        let cache = self.keys.read()
+            .map_err(|e| {TelegramAuthError::LockError})?;
+        cache.get(kid).cloned().ok_or(TelegramAuthError::KeyNotFound)
+    }
+}
+
+/// Convert a JWK to a `jsonwebtoken::DecodingKey`.
+
+fn jwk_to_decoding_key(jwk: &Jwk) -> Result<DecodingKey, TelegramAuthError> {
+    match jwk.kty.as_str() {
+        "RSA" => {
+            let n = jwk.n.as_deref().ok_or(TelegramAuthError::UnsupportedKeyType)?;
+            let e = jwk.e.as_deref().ok_or(TelegramAuthError::UnsupportedKeyType)?;
+            Ok(DecodingKey::from_rsa_components(n, e)?)
+        }
+        "EC" => {
+            let x = jwk.x.as_deref().ok_or(TelegramAuthError::UnsupportedKeyType)?;
+            let y = jwk.y.as_deref().ok_or(TelegramAuthError::UnsupportedKeyType)?;
+            let mut point = vec![0x04u8];
+            point.extend_from_slice(
+                &URL_SAFE_NO_PAD.decode(x).map_err(|_| TelegramAuthError::UnsupportedKeyType)?,
+            );
+            point.extend_from_slice(
+                &URL_SAFE_NO_PAD.decode(y).map_err(|_| TelegramAuthError::UnsupportedKeyType)?,
+            );
+            Ok(DecodingKey::from_ec_der(&point))
+        }
+        _ => Err(TelegramAuthError::UnsupportedKeyType),
+    }
+}
+
+/// Re-encode raw bytes as standard (non-URL-safe) base64 so that
+/// `jsonwebtoken::DecodingKey::from_rsa_components` can accept them.
+fn base64_encode_std(bytes: &[u8]) -> String {
+    use base64::engine::general_purpose::STANDARD;
+    STANDARD.encode(bytes)
 }
