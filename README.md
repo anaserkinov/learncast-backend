@@ -41,7 +41,7 @@
 | Object storage | `aws-sdk-s3` 1.119 (Cloudflare R2 via custom endpoint) |
 | Authentication | `jsonwebtoken` 10 (HS256) |
 | Google Sign-In | `google-cloud-auth` 1.3 (ID token verification) |
-| Telegram Sign-In | HMAC-SHA256 manual verification (`hmac` + `sha2` + `hex`) |
+| Telegram Sign-In | jsonwebtoken 10 + reqwest 0.12 (OIDC JWT, RS256, JWKS auto-rotation)|
 | Request validation | `validator` 0.20 (derive macros) |
 | Serialization | `serde` + `serde_json` |
 | Localization | `fluent-templates` 0.13 (Fluent FTL files) |
